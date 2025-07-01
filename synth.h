@@ -2,38 +2,45 @@
 #define SYNTH_H
 #include <SDL2/SDL_audio.h>
 #include "voice.h"
-#include "effects.h"
 
-#define OSC_SINE    1
-#define OSC_SQUARE  2
-#define OSC_NOISE   4
-#define OSC_SAW     8
+#define NUM_OSCS 4
+#define NUM_WAVEFORMS 6
+
+enum {
+    WAVE_SAW,
+    WAVE_SQUARE,
+    WAVE_TRIANGLE,
+    WAVE_SINE,
+    WAVE_PULSE,
+    WAVE_NOISE
+};
+
+extern const char* waveform_names[NUM_WAVEFORMS];
 
 typedef struct {
     SDL_AudioDeviceID audio;
     SDL_AudioSpec spec;
-    int osc_mode; // OR-combo of OSC_* flags
+    int osc_wave[NUM_OSCS];       // 0=Saw, 1=Square, 2=Triangle, 3=Sine, etc.
+    float osc_detune[NUM_OSCS];
+    float osc_phase[NUM_OSCS];
     int octave;
     int volume;
     int demo_playing;
-    float flanger_depth, flanger_rate;
-    float delay_ms, delay_fb;
+    float flanger_depth;
+    float delay_ms;
     float reverb_mix;
     Voice *voices;
     int voice_count;
-    Effects fx; // Embedded effects struct, not pointer
+    // Demo pattern state
+    int demo_step;
+    double demo_timer;
+    int demo_notes_on[8];
 } Synth;
 
 void synth_init(Synth *s);
 void synth_close(Synth *s);
 void synth_note_on(Synth *s, int midi_note);
 void synth_note_off(Synth *s, int midi_note);
-void synth_play_demo(Synth *s);
-void synth_toggle_osc(Synth *s);
-void synth_octave_mod(Synth *s, int delta);
-void synth_volume_mod(Synth *s, int delta);
-void synth_flanger_mod(Synth *s, int delta);
-void synth_delay_mod(Synth *s, int delta);
-void synth_state_string(Synth *s, char *buf, int buflen);
+void synth_demo_update(Synth *s, double dt);
 
 #endif

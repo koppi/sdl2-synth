@@ -11,11 +11,9 @@ float osc_square(float phase) {
 }
 
 float osc_noise() {
-    // Returns float in [-1, 1]
     return 2.0f * ((float)rand() / (float)RAND_MAX) - 1.0f;
 }
 
 float osc_saw(float phase) {
-    // Sawtooth rises from -1 to 1 as phase goes 0..1
     return 2.0f * phase - 1.0f;
 }

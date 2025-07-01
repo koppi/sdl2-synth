@@ -1,27 +1,30 @@
+# Basic Makefile for SDL2 Synth Project with GUI, Virtual Keyboard, Effects, and MIDI
+# Adjust paths for your system as needed
+
 CC = gcc
-CXX = g++
 CFLAGS = -Wall -O2 -g `sdl2-config --cflags` -I.
-CXXFLAGS = -Wall -O2 -g `sdl2-config --cflags` -I.
-LDFLAGS = `sdl2-config --libs` -lSDL2_ttf -lm -lpthread -lasound
+LDFLAGS = `sdl2-config --libs` -lSDL2_ttf -lSDL2_gfx -lm
 
-SRC_C = main.c synth.c osc.c voice.c effects.c gui.c midi.c
-SRC_CPP = midi_in.cpp RtMidi.cpp
-OBJ_C = $(SRC_C:.c=.o)
-OBJ_CPP = $(SRC_CPP:.cpp=.o)
-BIN = synth
+# If you want MIDI via RtMidi, uncomment the following lines and add rtmidi_in.o to OBJS
+# RTMIDI_SRC = RtMidi.cpp
+# RTMIDI_OBJ = RtMidi.o
+# MIDI_OBJS = midi_in.o $(RTMIDI_OBJ)
+# MIDI_FLAGS = -I/path/to/rtmidi
 
-all: $(BIN)
+OBJS = main.o synth.o voice.o osc.o gui.o
+# Add effects.o if you implement effects processing
 
-$(BIN): $(OBJ_C) $(OBJ_CPP)
-	$(CXX) $(OBJ_C) $(OBJ_CPP) -o $@ $(LDFLAGS)
+TARGET = sdl2synth
 
-%.o: %.c *.h
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+%.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-%.o: %.cpp *.h
-	$(CXX) $(CXXFLAGS) -D__LINUX_ALSA__ -c $< -o $@
-
 clean:
-	rm -f *.o $(BIN)
+	rm -f $(OBJS) $(TARGET)
 
 .PHONY: all clean

@@ -1,70 +1,98 @@
-# SDL2 Modular Synthesizer
+# SDL2 Synth
 
-A polyphonic modular synthesizer written in C using SDL2, featuring:
+A polyphonic synthesizer demo written in C using SDL2. Features a graphical user interface for real-time control of oscillators, effects, and MIDI input.
 
-- Sine, square, white noise, and **sawtooth** oscillators (toggle with F1)
-- Complex reverb, delay, and flanger effects
-- Polyphony: up to 64 voices
-- 48kHz sample rate, 512 sample buffer size
-- QWERTZ keyboard-to-MIDI piano mapping (`qwertzuiop`, `asdfghjkl`), octave shift (arrow keys)
-- GUI with visual keyboard (white/black keys), state shown in window title
-- Polyphonic demo melody (press Space)
-- Volume and effect parameter controls (arrow keys, F3/F4/F5/F6)
-- **External MIDI input via RtMidi** (play from your MIDI keyboard/controller)
+## Features
+
+- **4 independent oscillators per voice**  
+  - Each oscillator can be set to one of 6 waveforms:
+    - Saw, Square, Triangle, Sine, Pulse, Noise
+  - Adjustable detune and phase (per oscillator) via GUI knobs
+
+- **Polyphonic playback**  
+  - 32-voice polyphony by default
+
+- **Graphical user interface**  
+  - Real-time visualization and control using SDL2
+  - Virtual keyboard for mouse/touch play
+  - Visual effect and oscillator controls (knobs and dropdowns)
+  - Live demo pattern display and control
+
+- **Built-in demo music**  
+  - Toggle demo playback with <kbd>F5</kbd> or <kbd>Space</kbd>
+  - Chord progression visualized in GUI
+
+- **Effects**  
+  - Flanger
+  - Delay
+  - Reverb
+  - Master volume
+
+- **MIDI input support**  
+  - Plug in a MIDI keyboard or use the QWERTY keyboard for note input
 
 ## Controls
 
-| Key               | Action                                   |
-|-------------------|------------------------------------------|
-| QWERTZUIOP        | Play notes (top row, white keys)         |
-| ASDFGHJKL         | Play notes (second row, white keys)      |
-| Up/Down           | Change octave                            |
-| Left/Right        | Change volume                            |
-| F1                | Toggle oscillators (sine/square/noise/saw)|
-| F3/F4             | Change flanger parameters                |
-| F5/F6             | Change delay parameters                  |
-| Space             | Play demo melody                         |
-| **MIDI Keyboard** | Play notes, triggers synth voices        |
+- **QWERTY Keyboard:**  
+  - Play notes using rows (`zsxdcvgbhnjmq2w3er5t6y7ui9o0p`), mapped to white and black keys starting at C3.
+- **Mouse:**  
+  - Click/drag knobs to adjust parameters (detune, phase, effects, volume)
+  - Click waveform name to select oscillator waveform
+  - Click on virtual keyboard to play notes
 
-## MIDI Input Support
+- **Demo Pattern:**  
+  - <kbd>F5</kbd> or <kbd>Space</kbd>: Toggle demo music playback
 
-- This synthesizer supports MIDI input using the [RtMidi](https://github.com/thestk/rtmidi) library.
-- The first available system MIDI input port is opened automatically.
-- You can play notes and control the synth from an external MIDI keyboard or device.
+- **Exit:**  
+  - <kbd>Esc</kbd> or window close
 
-### Linux dependencies
+## Building
 
-- Install SDL2, SDL2_ttf, and ALSA development packages:
-  ```sh
-  sudo apt-get install libsdl2-dev libsdl2-ttf-dev libasound2-dev
-  ```
-- RtMidi will use ALSA for MIDI input on Linux.
+### Dependencies
 
-### macOS dependencies
+- [SDL2](https://www.libsdl.org/)
+- [SDL2_ttf](https://www.libsdl.org/projects/SDL_ttf/)
+- [SDL2_gfx](http://www.ferzkopp.net/joomla/content/view/19/14/)
+- (Optional) [RtMidi](https://github.com/thestk/rtmidi) for MIDI input
 
-- Install SDL2 and SDL2_ttf (e.g. via Homebrew).
-- RtMidi will use CoreMIDI.
+On Debian/Ubuntu:
 
-### Windows dependencies
+```sh
+sudo apt-get install libsdl2-dev libsdl2-ttf-dev libsdl2-gfx-dev
+```
 
-- Install SDL2 and SDL2_ttf development libraries.
-- RtMidi will use WinMM.
+### Build
 
-## Build Instructions
+```
+gcc -o sdl2synth \
+    main.c synth.c gui.c voice.c effects.c osc.c midi.c \
+    midi_in.cpp rtmidi_c.cpp RtMidi.cpp \
+    -lSDL2 -lSDL2_ttf -lSDL2_gfx -lstdc++ -lpthread -lasound
+```
 
-Requires SDL2, SDL2_ttf, and RtMidi (with appropriate MIDI backend support).
+- You may need to adapt includes/links for your platform (Windows, macOS, etc.).
+- For MIDI support: ensure `RtMidi` is present and compiled with ALSA/JACK/CoreMIDI as appropriate.
 
-1. **Download or clone RtMidi**  
-   Place `RtMidi.cpp` and `RtMidi.h` in your project directory.
+## File Structure
 
-2. **Build:**
-    ```sh
-    make
-    ./synth
-    ```
-
-   If you encounter MIDI errors, ensure you have the necessary system MIDI development libraries (see above).
+- `main.c` - Application entry point, event loop and main logic
+- `synth.c/.h` - Synthesizer core, audio generation, demo pattern
+- `voice.c/.h` - Voice allocation and per-note synthesis
+- `gui.c/.h` - User interface, knob rendering, dropdowns, and keyboard
+- `effects.c/.h` - Flanger, delay, and reverb effects
+- `osc.c/.h` - Oscillator waveform generation
+- `midi.c/.h` - Keyboard-to-MIDI mapping helpers
+- `midi_in.cpp/.h` - MIDI input via RtMidi
+- `rtmidi_c.cpp/.h`, `RtMidi.cpp/.h` - RtMidi C and C++ MIDI backend
 
 ## License
 
-MIT License (see LICENSE).
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+## Credits
+
+- [RtMidi](https://github.com/thestk/rtmidi) by Gary P. Scavone
+- SDL2 and related libraries
+
+---
+Enjoy making music!
