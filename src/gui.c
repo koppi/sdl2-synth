@@ -5,7 +5,6 @@
 #include <string.h>
 #include <SDL.h>
 #include <SDL_ttf.h>
-#include <SDL2_gfxPrimitives.h>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -375,9 +374,8 @@ static void draw_knob(SDL_Renderer *r, int cx, int cy, int radius, float value, 
     float angle = (value-min)/(max-min) * (5.0f*M_PI/4.0f) + (7.0f*M_PI/8.0f);
     int mx = (int)(cx + (radius-5) * cosf(angle));
     int my = (int)(cy + (radius-5) * sinf(angle));
-    // SDL_SetRenderDrawColor(r, 40, 40, 40, 255);
-    // SDL_RenderDrawLine(r, cx, cy, mx, my);
-	thickLineRGBA(r, cx, cy, mx, my, 3, 40, 40, 40, 255);
+    SDL_SetRenderDrawColor(r, 40, 40, 40, 255);
+    SDL_RenderDrawLine(r, cx, cy, mx, my);
 
     if (highlight)
         draw_knob_border(r, cx, cy, radius, anim_phase);

@@ -1,6 +1,6 @@
 #include "midi.h"
 #include "synth.h"
-#include <rtmidi_c.h>
+#include <rtmidi/rtmidi_c.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

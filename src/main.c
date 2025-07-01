@@ -1,6 +1,6 @@
 #include "app.h"
 
-int main(void) {
+int main(int argc, char *argv[]) {
     App app;
     if (!app_init(&app)) return 1;
 
