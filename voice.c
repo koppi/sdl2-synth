@@ -74,12 +74,15 @@ void voice_render(Voice *v, float *out, int ns, int osc_mode, int octave, int vo
             s = osc_square(phase);
         else if (osc_mode == OSC_NOISE)
             s = osc_noise();
+        else if (osc_mode == OSC_SAW)
+            s = osc_saw(phase);
         else {
             // Mix modes
             float c = 0, sum = 0;
             if (osc_mode & OSC_SINE)   { sum += osc_sine(phase); c++; }
             if (osc_mode & OSC_SQUARE) { sum += osc_square(phase); c++; }
             if (osc_mode & OSC_NOISE)  { sum += osc_noise(); c++; }
+            if (osc_mode & OSC_SAW)    { sum += osc_saw(phase); c++; }
             if (c > 0) s = sum / c;
         }
         s *= gain * env;

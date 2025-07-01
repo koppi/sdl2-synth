@@ -7,11 +7,12 @@
 #define OSC_SINE    1
 #define OSC_SQUARE  2
 #define OSC_NOISE   4
+#define OSC_SAW     8
 
 typedef struct {
     SDL_AudioDeviceID audio;
     SDL_AudioSpec spec;
-    int osc_mode; // OSC_SINE, OSC_SQUARE, OSC_NOISE, or combinations
+    int osc_mode; // OR-combo of OSC_* flags
     int octave;
     int volume;
     int demo_playing;

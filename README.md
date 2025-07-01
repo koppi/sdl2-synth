@@ -2,7 +2,7 @@
 
 A polyphonic modular synthesizer written in C using SDL2, featuring:
 
-- Sine, square, and **white noise** oscillators (toggle with F1)
+- Sine, square, white noise, and **sawtooth** oscillators (toggle with F1)
 - Complex reverb, delay, and flanger effects
 - Polyphony: up to 64 voices
 - 48kHz sample rate, 512 sample buffer size
@@ -20,7 +20,7 @@ A polyphonic modular synthesizer written in C using SDL2, featuring:
 | ASDFGHJKL         | Play notes (second row, white keys)      |
 | Up/Down           | Change octave                            |
 | Left/Right        | Change volume                            |
-| F1                | Toggle oscillators (sine/square/noise)   |
+| F1                | Toggle oscillators (sine/square/noise/saw)|
 | F3/F4             | Change flanger parameters                |
 | F5/F6             | Change delay parameters                  |
 | Space             | Play demo melody                         |

@@ -84,13 +84,20 @@ void synth_play_demo(Synth *s) {
 }
 
 void synth_toggle_osc(Synth *s) {
-    if (s->osc_mode == OSC_SINE) s->osc_mode = OSC_SQUARE;
-    else if (s->osc_mode == OSC_SQUARE) s->osc_mode = OSC_NOISE;
-    else if (s->osc_mode == OSC_NOISE) s->osc_mode = OSC_SINE | OSC_SQUARE;
-    else if (s->osc_mode == (OSC_SINE | OSC_SQUARE)) s->osc_mode = OSC_SINE | OSC_NOISE;
-    else if (s->osc_mode == (OSC_SINE | OSC_NOISE)) s->osc_mode = OSC_SQUARE | OSC_NOISE;
-    else if (s->osc_mode == (OSC_SQUARE | OSC_NOISE)) s->osc_mode = OSC_SINE | OSC_SQUARE | OSC_NOISE;
-    else s->osc_mode = OSC_SINE;
+    // Sine -> Square -> Noise -> Saw -> Sine+Square -> Sine+Noise -> Sine+Saw -> Square+Noise -> Square+Saw -> Noise+Saw -> Sine+Square+Noise -> Sine+Square+Saw -> Sine+Noise+Saw -> Square+Noise+Saw -> All -> Sine
+    static const int modes[] = {
+        OSC_SINE, OSC_SQUARE, OSC_NOISE, OSC_SAW,
+        OSC_SINE|OSC_SQUARE, OSC_SINE|OSC_NOISE, OSC_SINE|OSC_SAW,
+        OSC_SQUARE|OSC_NOISE, OSC_SQUARE|OSC_SAW, OSC_NOISE|OSC_SAW,
+        OSC_SINE|OSC_SQUARE|OSC_NOISE, OSC_SINE|OSC_SQUARE|OSC_SAW,
+        OSC_SINE|OSC_NOISE|OSC_SAW, OSC_SQUARE|OSC_NOISE|OSC_SAW,
+        OSC_SINE|OSC_SQUARE|OSC_NOISE|OSC_SAW
+    };
+    int i;
+    for (i=0; i<sizeof(modes)/sizeof(modes[0]); ++i) {
+        if (s->osc_mode == modes[i]) break;
+    }
+    s->osc_mode = modes[(i+1)%((int)(sizeof(modes)/sizeof(modes[0])))];
 }
 
 void synth_octave_mod(Synth *s, int delta) {
@@ -122,10 +129,18 @@ void synth_state_string(Synth *s, char *buf, int buflen) {
     if (s->osc_mode == OSC_SINE) osc = "Sine";
     else if (s->osc_mode == OSC_SQUARE) osc = "Square";
     else if (s->osc_mode == OSC_NOISE) osc = "Noise";
+    else if (s->osc_mode == OSC_SAW) osc = "Saw";
     else if (s->osc_mode == (OSC_SINE | OSC_SQUARE)) osc = "Sine+Square";
     else if (s->osc_mode == (OSC_SINE | OSC_NOISE)) osc = "Sine+Noise";
+    else if (s->osc_mode == (OSC_SINE | OSC_SAW)) osc = "Sine+Saw";
     else if (s->osc_mode == (OSC_SQUARE | OSC_NOISE)) osc = "Square+Noise";
+    else if (s->osc_mode == (OSC_SQUARE | OSC_SAW)) osc = "Square+Saw";
+    else if (s->osc_mode == (OSC_NOISE | OSC_SAW)) osc = "Noise+Saw";
     else if (s->osc_mode == (OSC_SINE | OSC_SQUARE | OSC_NOISE)) osc = "Sine+Square+Noise";
+    else if (s->osc_mode == (OSC_SINE | OSC_SQUARE | OSC_SAW)) osc = "Sine+Square+Saw";
+    else if (s->osc_mode == (OSC_SINE | OSC_NOISE | OSC_SAW)) osc = "Sine+Noise+Saw";
+    else if (s->osc_mode == (OSC_SQUARE | OSC_NOISE | OSC_SAW)) osc = "Square+Noise+Saw";
+    else if (s->osc_mode == (OSC_SINE | OSC_SQUARE | OSC_NOISE | OSC_SAW)) osc = "Sine+Square+Noise+Saw";
     snprintf(buf, buflen, "SDL2 Synth | Octave: %d | Volume: %d | Osc: %s | Flanger: %.2f | Delay: %.0fms | Reverb: %.2f",
         s->octave, s->volume, osc, s->flanger_depth, s->delay_ms, s->reverb_mix
     );
