@@ -10,6 +10,7 @@ A polyphonic modular synthesizer written in C using SDL2, featuring:
 - GUI with visual keyboard (white/black keys), state shown in window title
 - Polyphonic demo melody (press Space)
 - Volume and effect parameter controls (arrow keys, F3/F4/F5/F6)
+- **External MIDI input via RtMidi** (play from your MIDI keyboard/controller)
 
 ## Controls
 
@@ -23,16 +24,46 @@ A polyphonic modular synthesizer written in C using SDL2, featuring:
 | F3/F4             | Change flanger parameters                |
 | F5/F6             | Change delay parameters                  |
 | Space             | Play demo melody                         |
+| **MIDI Keyboard** | Play notes, triggers synth voices        |
+
+## MIDI Input Support
+
+- This synthesizer supports MIDI input using the [RtMidi](https://github.com/thestk/rtmidi) library.
+- The first available system MIDI input port is opened automatically.
+- You can play notes and control the synth from an external MIDI keyboard or device.
+
+### Linux dependencies
+
+- Install SDL2, SDL2_ttf, and ALSA development packages:
+  ```sh
+  sudo apt-get install libsdl2-dev libsdl2-ttf-dev libasound2-dev
+  ```
+- RtMidi will use ALSA for MIDI input on Linux.
+
+### macOS dependencies
+
+- Install SDL2 and SDL2_ttf (e.g. via Homebrew).
+- RtMidi will use CoreMIDI.
+
+### Windows dependencies
+
+- Install SDL2 and SDL2_ttf development libraries.
+- RtMidi will use WinMM.
 
 ## Build Instructions
 
-Requires SDL2 and SDL2_ttf development libraries.
+Requires SDL2, SDL2_ttf, and RtMidi (with appropriate MIDI backend support).
 
-```
-sudo apt-get install libsdl2-dev libsdl2-ttf-dev
-make
-./synth
-```
+1. **Download or clone RtMidi**  
+   Place `RtMidi.cpp` and `RtMidi.h` in your project directory.
+
+2. **Build:**
+    ```sh
+    make
+    ./synth
+    ```
+
+   If you encounter MIDI errors, ensure you have the necessary system MIDI development libraries (see above).
 
 ## License
 
