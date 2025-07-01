@@ -31,7 +31,7 @@ A modular synthesizer application written in C, using SDL2 for graphics and audi
 Install dependencies (example for Debian/Ubuntu):
 
 ```sh
-sudo apt-get install libsdl2-dev libsdl2-ttf-dev librtmidi-dev
+sudo apt-get install libsdl2-dev libsdl2-ttf-dev libsdl2-gfx-dev librtmidi-dev
 ```
 
 Clone and build:
@@ -47,14 +47,14 @@ make
 Install dependencies (with Homebrew):
 
 ```sh
-brew install sdl2 sdl2_ttf rtmidi
+brew install sdl2 sdl2_ttf sdl2_gfx rtmidi
 ```
 
 Then build as above.
 
 ### Windows
 
-- Install SDL2, SDL2_ttf, and RtMidi development libraries.
+- Install SDL2, SDL2_ttf, SDL2_gfx and RtMidi development libraries.
 - Use MinGW or Visual Studio to build the sources (adjust includes/libs as needed).
 
 ## Running
@@ -94,5 +94,6 @@ MIT License (see [LICENSE](LICENSE))
 
 - [SDL2](https://www.libsdl.org/)
 - [SDL2_ttf](https://www.libsdl.org/projects/SDL_ttf/)
+- [SDL2_gfx](https://sourceforge.net/projects/sdl2gfx/)
 - [RtMidi](https://github.com/thestk/rtmidi)
 - [DejaVu Fonts](https://dejavu-fonts.github.io/)
