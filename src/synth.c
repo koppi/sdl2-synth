@@ -21,7 +21,7 @@ void synth_audio_callback(void *userdata, Uint8 *stream, int len) {
     const int frames = len / (sizeof(float) * 2);
     float *out = (float*)stream;
     memset(out, 0, sizeof(float)*frames*2);
-    float vbuf[1024*1024];
+    float vbuf[1024]; //XXX
 
     for (int v = 0; v < synth->max_voices; ++v) {
         if (!synth->voices[v].active) continue;
