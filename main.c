@@ -4,9 +4,21 @@
 #include "synth.h"
 #include "gui.h"
 #include "midi.h"
+#include "midi_in.h" // <-- ADD THIS
 
 #define WIDTH 960
 #define HEIGHT 320
+
+// Make synth visible to MIDI callback
+Synth synth;
+
+// MIDI input callback
+static void midi_note_cb(int on, int note, int vel) {
+    if (on)
+        synth_note_on(&synth, note);
+    else
+        synth_note_off(&synth, note);
+}
 
 int main(int argc, char *argv[]) {
     (void)argc; (void)argv;
@@ -26,8 +38,11 @@ int main(int argc, char *argv[]) {
     SDL_Renderer *ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (!ren) { fprintf(stderr, "Renderer creation failed\n"); return 1; }
 
-    Synth synth;
     synth_init(&synth);
+
+    // MIDI input setup
+    midi_in_set_note_callback(midi_note_cb);
+    midi_in_start();
 
     gui_init(ren);
 
