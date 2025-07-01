@@ -2,6 +2,7 @@
 #include "osc.h"
 #include <math.h>
 #include <string.h>
+#include <stdlib.h>
 
 #define ENV_ATTACK 0.01f
 #define ENV_RELEASE 0.18f
@@ -67,15 +68,26 @@ void voice_render(Voice *v, float *out, int ns, int osc_mode, int octave, int vo
             if (env < 0.0f) env = 0.0f;
         }
         float s = 0.0f;
-        if (osc_mode == OSC_SINE) s = osc_sine(phase);
-        else if (osc_mode == OSC_SQUARE) s = osc_square(phase);
-        else s = (osc_sine(phase)+osc_square(phase))*0.5f;
+        if (osc_mode == OSC_SINE)
+            s = osc_sine(phase);
+        else if (osc_mode == OSC_SQUARE)
+            s = osc_square(phase);
+        else if (osc_mode == OSC_NOISE)
+            s = osc_noise();
+        else {
+            // Mix modes
+            float c = 0, sum = 0;
+            if (osc_mode & OSC_SINE)   { sum += osc_sine(phase); c++; }
+            if (osc_mode & OSC_SQUARE) { sum += osc_square(phase); c++; }
+            if (osc_mode & OSC_NOISE)  { sum += osc_noise(); c++; }
+            if (c > 0) s = sum / c;
+        }
         s *= gain * env;
 
         out[i*2+0] += s;
         out[i*2+1] += s;
 
-        // Advance phase
+        // Advance phase (not for noise)
         phase += freq/(float)samplerate;
         if (phase >= 1.0f) phase -= 1.0f;
         env_time += 1.0f/(float)samplerate;

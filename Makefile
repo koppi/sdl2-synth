@@ -1,8 +1,7 @@
-# ... (top unchanged)
 CC = gcc
 CXX = g++
 CFLAGS = -Wall -O2 -g `sdl2-config --cflags` -I.
-CXXFLAGS = -Wall -O2 -g `sdl2-config --cflags` -I. -D__LINUX_ALSA__
+CXXFLAGS = -Wall -O2 -g `sdl2-config --cflags` -I.
 LDFLAGS = `sdl2-config --libs` -lSDL2_ttf -lm -lpthread -lasound
 
 SRC_C = main.c synth.c osc.c voice.c effects.c gui.c midi.c
@@ -20,7 +19,7 @@ $(BIN): $(OBJ_C) $(OBJ_CPP)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 %.o: %.cpp *.h
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -D__LINUX_ALSA__ -c $< -o $@
 
 clean:
 	rm -f *.o $(BIN)

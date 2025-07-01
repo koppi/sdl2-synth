@@ -4,15 +4,13 @@
 #include "synth.h"
 #include "gui.h"
 #include "midi.h"
-#include "midi_in.h" // <-- ADD THIS
+#include "midi_in.h"
 
 #define WIDTH 960
 #define HEIGHT 320
 
-// Make synth visible to MIDI callback
 Synth synth;
 
-// MIDI input callback
 static void midi_note_cb(int on, int note, int vel) {
     if (on)
         synth_note_on(&synth, note);
@@ -40,7 +38,6 @@ int main(int argc, char *argv[]) {
 
     synth_init(&synth);
 
-    // MIDI input setup
     midi_in_set_note_callback(midi_note_cb);
     midi_in_start();
 

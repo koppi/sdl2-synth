@@ -85,7 +85,11 @@ void synth_play_demo(Synth *s) {
 
 void synth_toggle_osc(Synth *s) {
     if (s->osc_mode == OSC_SINE) s->osc_mode = OSC_SQUARE;
-    else if (s->osc_mode == OSC_SQUARE) s->osc_mode = OSC_SINE;
+    else if (s->osc_mode == OSC_SQUARE) s->osc_mode = OSC_NOISE;
+    else if (s->osc_mode == OSC_NOISE) s->osc_mode = OSC_SINE | OSC_SQUARE;
+    else if (s->osc_mode == (OSC_SINE | OSC_SQUARE)) s->osc_mode = OSC_SINE | OSC_NOISE;
+    else if (s->osc_mode == (OSC_SINE | OSC_NOISE)) s->osc_mode = OSC_SQUARE | OSC_NOISE;
+    else if (s->osc_mode == (OSC_SQUARE | OSC_NOISE)) s->osc_mode = OSC_SINE | OSC_SQUARE | OSC_NOISE;
     else s->osc_mode = OSC_SINE;
 }
 
@@ -114,10 +118,16 @@ void synth_delay_mod(Synth *s, int delta) {
 }
 
 void synth_state_string(Synth *s, char *buf, int buflen) {
+    const char *osc = "Unknown";
+    if (s->osc_mode == OSC_SINE) osc = "Sine";
+    else if (s->osc_mode == OSC_SQUARE) osc = "Square";
+    else if (s->osc_mode == OSC_NOISE) osc = "Noise";
+    else if (s->osc_mode == (OSC_SINE | OSC_SQUARE)) osc = "Sine+Square";
+    else if (s->osc_mode == (OSC_SINE | OSC_NOISE)) osc = "Sine+Noise";
+    else if (s->osc_mode == (OSC_SQUARE | OSC_NOISE)) osc = "Square+Noise";
+    else if (s->osc_mode == (OSC_SINE | OSC_SQUARE | OSC_NOISE)) osc = "Sine+Square+Noise";
     snprintf(buf, buflen, "SDL2 Synth | Octave: %d | Volume: %d | Osc: %s | Flanger: %.2f | Delay: %.0fms | Reverb: %.2f",
-        s->octave, s->volume,
-        (s->osc_mode == OSC_SINE ? "Sine" : (s->osc_mode == OSC_SQUARE ? "Square" : "Mix")),
-        s->flanger_depth, s->delay_ms, s->reverb_mix
+        s->octave, s->volume, osc, s->flanger_depth, s->delay_ms, s->reverb_mix
     );
 }
 

@@ -4,13 +4,14 @@
 #include "voice.h"
 #include "effects.h"
 
-#define OSC_SINE   1
-#define OSC_SQUARE 2
+#define OSC_SINE    1
+#define OSC_SQUARE  2
+#define OSC_NOISE   4
 
 typedef struct {
     SDL_AudioDeviceID audio;
     SDL_AudioSpec spec;
-    int osc_mode; // OSC_SINE or OSC_SQUARE
+    int osc_mode; // OSC_SINE, OSC_SQUARE, OSC_NOISE, or combinations
     int octave;
     int volume;
     int demo_playing;
