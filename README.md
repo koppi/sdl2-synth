@@ -1,98 +1,95 @@
-# SDL2 Synth
+# Modular Synth
 
-A polyphonic synthesizer demo written in C using SDL2. Features a graphical user interface for real-time control of oscillators, effects, and MIDI input.
+A modular synthesizer application written in C, using SDL2 for graphics and audio, and supporting MIDI input via RtMidi. The GUI is resizable and features oscilloscope and spectrum displays, keyboard input, and real-time control of oscillators, effects, mixer, and arpeggiator.
 
 ## Features
 
-- **4 independent oscillators per voice**  
-  - Each oscillator can be set to one of 6 waveforms:
-    - Saw, Square, Triangle, Sine, Pulse, Noise
-  - Adjustable detune and phase (per oscillator) via GUI knobs
+- **4-oscillator synth**: Each with independent waveform, pitch, detune, gain, and phase.
+- **Mixer**: Control the mix and master volume of each oscillator.
+- **Effects**: Flanger, delay, and reverb with real-time controls.
+- **Arpeggiator**: Multiple modes, adjustable tempo, and enable/disable.
+- **On-screen keyboard**: Play notes with the mouse.
+- **Oscilloscope & Spectrum**: Visualize output waveform and frequency spectrum.
+- **MIDI input**: Map MIDI CC to synth parameters for external control.
+- **Resizable GUI**: Layout adapts to window size.
 
-- **Polyphonic playback**  
-  - 32-voice polyphony by default
+## Dependencies
 
-- **Graphical user interface**  
-  - Real-time visualization and control using SDL2
-  - Virtual keyboard for mouse/touch play
-  - Visual effect and oscillator controls (knobs and dropdowns)
-  - Live demo pattern display and control
+- [SDL2](https://www.libsdl.org/) (graphics, audio, events)
+- [SDL2_ttf](https://www.libsdl.org/projects/SDL_ttf/) (font rendering)
+- [RtMidi](https://github.com/thestk/rtmidi) (MIDI input)
+- [math.h], [string.h], [stdlib.h], [stdio.h]
+- A TrueType font (e.g., DejaVuSans.ttf; see below)
 
-- **Built-in demo music**  
-  - Toggle demo playback with <kbd>F5</kbd> or <kbd>Space</kbd>
-  - Chord progression visualized in GUI
+## Build Instructions
 
-- **Effects**  
-  - Flanger
-  - Delay
-  - Reverb
-  - Master volume
+### Linux
 
-- **MIDI input support**  
-  - Plug in a MIDI keyboard or use the QWERTY keyboard for note input
-
-## Controls
-
-- **QWERTY Keyboard:**  
-  - Play notes using rows (`zsxdcvgbhnjmq2w3er5t6y7ui9o0p`), mapped to white and black keys starting at C3.
-- **Mouse:**  
-  - Click/drag knobs to adjust parameters (detune, phase, effects, volume)
-  - Click waveform name to select oscillator waveform
-  - Click on virtual keyboard to play notes
-
-- **Demo Pattern:**  
-  - <kbd>F5</kbd> or <kbd>Space</kbd>: Toggle demo music playback
-
-- **Exit:**  
-  - <kbd>Esc</kbd> or window close
-
-## Building
-
-### Dependencies
-
-- [SDL2](https://www.libsdl.org/)
-- [SDL2_ttf](https://www.libsdl.org/projects/SDL_ttf/)
-- [SDL2_gfx](http://www.ferzkopp.net/joomla/content/view/19/14/)
-- (Optional) [RtMidi](https://github.com/thestk/rtmidi) for MIDI input
-
-On Debian/Ubuntu:
+Install dependencies (example for Debian/Ubuntu):
 
 ```sh
-sudo apt-get install libsdl2-dev libsdl2-ttf-dev libsdl2-gfx-dev
+sudo apt-get install libsdl2-dev libsdl2-ttf-dev librtmidi-dev
 ```
 
-### Build
+Clone and build:
 
+```sh
+git clone <your-repo-url>
+cd <your-repo>
+make
 ```
-gcc -o sdl2synth \
-    main.c synth.c gui.c voice.c effects.c osc.c midi.c \
-    midi_in.cpp rtmidi_c.cpp RtMidi.cpp \
-    -lSDL2 -lSDL2_ttf -lSDL2_gfx -lstdc++ -lpthread -lasound
+
+### macOS
+
+Install dependencies (with Homebrew):
+
+```sh
+brew install sdl2 sdl2_ttf rtmidi
 ```
 
-- You may need to adapt includes/links for your platform (Windows, macOS, etc.).
-- For MIDI support: ensure `RtMidi` is present and compiled with ALSA/JACK/CoreMIDI as appropriate.
+Then build as above.
 
-## File Structure
+### Windows
 
-- `main.c` - Application entry point, event loop and main logic
-- `synth.c/.h` - Synthesizer core, audio generation, demo pattern
-- `voice.c/.h` - Voice allocation and per-note synthesis
-- `gui.c/.h` - User interface, knob rendering, dropdowns, and keyboard
-- `effects.c/.h` - Flanger, delay, and reverb effects
-- `osc.c/.h` - Oscillator waveform generation
-- `midi.c/.h` - Keyboard-to-MIDI mapping helpers
-- `midi_in.cpp/.h` - MIDI input via RtMidi
-- `rtmidi_c.cpp/.h`, `RtMidi.cpp/.h` - RtMidi C and C++ MIDI backend
+- Install SDL2, SDL2_ttf, and RtMidi development libraries.
+- Use MinGW or Visual Studio to build the sources (adjust includes/libs as needed).
+
+## Running
+
+```sh
+./synth
+```
+
+The application will open a window with the synthesizer GUI.
+
+## Notes
+
+- The application expects to find a TrueType font (such as `DejaVuSans.ttf`) in `/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf` or the current directory.
+- MIDI input is mapped to numerous parameters (see `src/midi.c` for mapping).
+- All GUI controls respond to mouse drag and mouse wheel.
+- The oscilloscope is fed directly from the audio callback thread for real-time visualization.
+
+## File Overview
+
+- `src/`: Source code for synth, GUI, effects, MIDI, etc.
+- `src/gui.c`, `src/gui.h`: GUI rendering and event handling.
+- `src/oscilloscope.c`, `src/oscilloscope.h`: Oscilloscope/spectrum visualization.
+- `src/synth.c`, `src/synth.h`: Synth core and audio callback.
+- `src/osc.c`, `src/osc.h`: Oscillator code.
+- `src/fx.c`, `src/fx.h`: Effects (flanger, delay, reverb).
+- `src/midi.c`, `src/midi.h`: MIDI input and mapping.
+- `src/voice.c`, `src/voice.h`: Voice management.
+- `src/mixer.c`, `src/mixer.h`: Mixer logic.
+- `src/arpeggiator.c`, `src/arpeggiator.h`: Arpeggiator logic.
+- `src/app.c`, `src/app.h`, `src/main.c`: Application entry point, SDL setup, main loop.
 
 ## License
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+MIT License (see [LICENSE](LICENSE))
 
 ## Credits
 
-- [RtMidi](https://github.com/thestk/rtmidi) by Gary P. Scavone
-- SDL2 and related libraries
-
----
-Enjoy making music!
+- [SDL2](https://www.libsdl.org/)
+- [SDL2_ttf](https://www.libsdl.org/projects/SDL_ttf/)
+- [RtMidi](https://github.com/thestk/rtmidi)
+- [DejaVu Fonts](https://dejavu-fonts.github.io/)
