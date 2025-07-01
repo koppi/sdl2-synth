@@ -2,13 +2,16 @@
 
 A modular synthesizer application written in C, using SDL2 for graphics and audio, and supporting MIDI input via RtMidi. The GUI is resizable and features oscilloscope and spectrum displays, keyboard input, and real-time control of oscillators, effects, mixer, and arpeggiator.
 
+## Screenshot
+
+![Modular Synth Screenshot](screenshot.png)
+
 ## Features
 
 - **4-oscillator synth**: Each with independent waveform, pitch, detune, gain, and phase.
 - **Mixer**: Control the mix and master volume of each oscillator.
 - **Effects**: Flanger, delay, and reverb with real-time controls.
 - **Arpeggiator**: Multiple modes, adjustable tempo, and enable/disable.
-- **On-screen keyboard**: Play notes with the mouse.
 - **Oscilloscope & Spectrum**: Visualize output waveform and frequency spectrum.
 - **MIDI input**: Map MIDI CC to synth parameters for external control.
 - **Resizable GUI**: Layout adapts to window size.

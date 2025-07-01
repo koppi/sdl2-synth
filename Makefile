@@ -1,6 +1,9 @@
 CC      = cc
-CFLAGS  = -std=c2x -O3 -Wall -Wextra -Iinclude $(shell pkg-config --cflags sdl2 SDL2_ttf rtmidi)
-LDFLAGS = $(shell pkg-config --libs sdl2 SDL2_ttf rtmidi) -lm
+
+PKGS    = sdl2 SDL2_ttf SDL2_gfx rtmidi
+
+CFLAGS  = -std=c2x -O3 -Wall -Wextra -Iinclude $(shell pkg-config --cflags $(PKGS))
+LDFLAGS = $(shell pkg-config --libs $(PKGS)) -lm
 SRC     = $(wildcard src/*.c)
 OBJ     = $(SRC:.c=.o)
 BIN     = synth

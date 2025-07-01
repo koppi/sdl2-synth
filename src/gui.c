@@ -5,6 +5,7 @@
 #include <string.h>
 #include <SDL.h>
 #include <SDL_ttf.h>
+#include <SDL2_gfxPrimitives.h>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -374,8 +375,9 @@ static void draw_knob(SDL_Renderer *r, int cx, int cy, int radius, float value, 
     float angle = (value-min)/(max-min) * (5.0f*M_PI/4.0f) + (7.0f*M_PI/8.0f);
     int mx = (int)(cx + (radius-5) * cosf(angle));
     int my = (int)(cy + (radius-5) * sinf(angle));
-    SDL_SetRenderDrawColor(r, 40, 40, 40, 255);
-    SDL_RenderDrawLine(r, cx, cy, mx, my);
+    // SDL_SetRenderDrawColor(r, 40, 40, 40, 255);
+    // SDL_RenderDrawLine(r, cx, cy, mx, my);
+	thickLineRGBA(r, cx, cy, mx, my, 3, 40, 40, 40, 255);
 
     if (highlight)
         draw_knob_border(r, cx, cy, radius, anim_phase);
@@ -421,9 +423,9 @@ static void draw_slider(SDL_Renderer *r, int x, int y, int w, int h, float value
 
 static void draw_led(SDL_Renderer *r, int x, int y, int on) {
     SDL_SetRenderDrawColor(r, on ? 0 : 40, on ? 255 : 40, 20, 255);
-    for (int dy = -3; dy <= 3; ++dy)
-        for (int dx = -3; dx <= 3; ++dx)
-            if (dx*dx + dy*dy <= 9)
+    for (int dy = -5; dy <= 5; ++dy)
+        for (int dx = -5; dx <= 5; ++dx)
+            if (dx*dx + dy*dy <= 16)
                 SDL_RenderDrawPoint(r, x+dx, y+dy);
 }
 
@@ -493,71 +495,9 @@ void gui_draw(Gui *gui) {
     draw_knob(r, arp_knob_x, arp_knob_y, 30, s->arp.tempo, 60, 240, "ArpTempo", gui->selected_control==27 || hovered_control==27, pulse);
     draw_led(r, arp_knob_x, arp_knob_y + 60, s->arp.enabled);
 
-    int kb_x = margin_x;
-    int kb_y = window_height - window_height * 0.28f;
-    int white_width = (window_width - margin_x * 2) / 24;
-    int white_height = window_height * 0.25f;
-    int black_width = white_width * 0.6f;
-    int black_height = white_height * 0.6f;
-    int octaves = 2, keys_per_oct = 12, n_keys = octaves * keys_per_oct;
-
-    int wkey = 0;
-    for (int k = 0; k < n_keys; ++k) {
-        int note = 60 + k;
-        int scale_pos = k % 12;
-        if (scale_pos == 0 || scale_pos == 2 || scale_pos == 4 || scale_pos == 5 ||
-            scale_pos == 7 || scale_pos == 9 || scale_pos == 11) {
-            int x = kb_x + wkey*white_width;
-            int is_pressed = 0;
-            for (int v = 0; v < s->max_voices; ++v)
-                if (s->voices[v].active && (int)(s->voices[v].note) == note)
-                    is_pressed = 1;
-            for (int n = 0; n < s->arp.held_count; ++n)
-                if (s->arp.held_notes[n] == note)
-                    is_pressed = 1;
-            SDL_SetRenderDrawColor(r, is_pressed ? 180 : 235, is_pressed ? 200 : 235, is_pressed ? 80 : 235, 255);
-            SDL_Rect key = {x, kb_y, white_width-2, white_height};
-            SDL_RenderFillRect(r, &key);
-            SDL_SetRenderDrawColor(r, 40, 40, 40, 255);
-            SDL_RenderDrawRect(r, &key);
-            char nn[4];
-            static const char *note_names[12] = {"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"};
-            snprintf(nn, sizeof(nn), "%s", note_names[scale_pos]);
-            draw_text(r, nn, x+4, kb_y+white_height-18, GUI_TEXT_COLOR);
-            wkey++;
-        }
-    }
-    wkey = 0;
-    for (int k = 0; k < n_keys; ++k) {
-        int note = 60 + k;
-        int scale_pos = k % 12;
-        if (scale_pos == 1 || scale_pos == 3 || scale_pos == 6 || scale_pos == 8 || scale_pos == 10) {
-            int wx = 0;
-            for (int w = 0, i = 0; i < scale_pos; ++i) {
-                if (i == 0 || i == 2 || i == 4 || i == 5 || i == 7 || i == 9 || i == 11)
-                    w++;
-                wx = w;
-            }
-            int x = kb_x + wx*white_width - black_width/2;
-            int is_pressed = 0;
-            for (int v = 0; v < s->max_voices; ++v)
-                if (s->voices[v].active && (int)(s->voices[v].note) == note)
-                    is_pressed = 1;
-            for (int n = 0; n < s->arp.held_count; ++n)
-                if (s->arp.held_notes[n] == note)
-                    is_pressed = 1;
-            SDL_SetRenderDrawColor(r, is_pressed ? 60 : 40, is_pressed ? 220 : 40, is_pressed ? 80 : 40, 255);
-            SDL_Rect key = {x, kb_y, black_width, black_height};
-            SDL_RenderFillRect(r, &key);
-            SDL_SetRenderDrawColor(r, 20, 20, 20, 255);
-            SDL_RenderDrawRect(r, &key);
-        }
-    }
-    draw_text(r, "On-screen Keyboard (C4..B5)", kb_x, kb_y-22, GUI_TEXT_COLOR);
-
-    int osc_w_px = window_width * 0.7f;
-    int osc_h_px = window_height * 0.13f;
-    int osc_x_px = window_width * 0.15f;
-    int osc_y_px = window_height * 0.02f;
+    int osc_w_px = window_width;
+    int osc_h_px = window_height * 0.2f;
+    int osc_x_px = 0;
+    int osc_y_px = window_height - osc_h_px;
     oscilloscope_draw(r, s, osc_x_px, osc_y_px, osc_w_px, osc_h_px, gui_font);
 }

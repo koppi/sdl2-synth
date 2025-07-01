@@ -6,7 +6,7 @@ int app_init(App *app) {
     memset(app, 0, sizeof(App));
     if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS) < 0) return 0;
 
-    app->window = SDL_CreateWindow("Modular Synth", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1200, 700, SDL_WINDOW_SHOWN);
+    app->window = SDL_CreateWindow("Modular Synth", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
     app->renderer = SDL_CreateRenderer(app->window, -1, SDL_RENDERER_ACCELERATED);
     if (!app->window || !app->renderer) return 0;
 
