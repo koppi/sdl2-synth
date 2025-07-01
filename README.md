@@ -19,7 +19,8 @@ A modular synthesizer application written in C, using SDL2 for graphics and audi
 ## Dependencies
 
 - [SDL2](https://www.libsdl.org/) (graphics, audio, events)
-- [SDL2_ttf](https://www.libsdl.org/projects/SDL_ttf/) (font rendering)
+- [SDL2_ttf](https://github.com/libsdl-org/SDL_ttf) (font rendering)
+- [SDL2_gfx](https://www.ferzkopp.net/Software/SDL2_gfx/Docs/html/index.html) (Graphics primitives)
 - [RtMidi](https://github.com/thestk/rtmidi) (MIDI input)
 - [math.h], [string.h], [stdlib.h], [stdio.h]
 - A TrueType font (e.g., DejaVuSans.ttf; see below)
@@ -94,6 +95,6 @@ MIT License (see [LICENSE](LICENSE))
 
 - [SDL2](https://www.libsdl.org/)
 - [SDL2_ttf](https://www.libsdl.org/projects/SDL_ttf/)
-- [SDL2_gfx](https://sourceforge.net/projects/sdl2gfx/)
+- [SDL2_gfx](https://www.ferzkopp.net/Software/SDL2_gfx/Docs/html/index.html)
 - [RtMidi](https://github.com/thestk/rtmidi)
 - [DejaVu Fonts](https://dejavu-fonts.github.io/)
