@@ -20,7 +20,6 @@ A modular synthesizer application written in C, using SDL2 for graphics and audi
 
 - [SDL2](https://www.libsdl.org/) (graphics, audio, events)
 - [SDL2_ttf](https://github.com/libsdl-org/SDL_ttf) (font rendering)
-- [SDL2_gfx](https://www.ferzkopp.net/Software/SDL2_gfx/Docs/html/index.html) (graphics primitives)
 - [RtMidi](https://github.com/thestk/rtmidi) (MIDI input)
 - [math.h], [string.h], [stdlib.h], [stdio.h]
 - A TrueType font (e.g., DejaVuSans.ttf; see below)
@@ -32,7 +31,7 @@ A modular synthesizer application written in C, using SDL2 for graphics and audi
 Install dependencies (example for Debian/Ubuntu):
 
 ```sh
-sudo apt-get install libsdl2-dev libsdl2-ttf-dev libsdl2-gfx-dev librtmidi-dev
+sudo apt-get install libsdl2-dev libsdl2-ttf-dev librtmidi-dev
 ```
 
 Clone and build:
@@ -48,14 +47,14 @@ make
 Install dependencies (with Homebrew):
 
 ```sh
-brew install sdl2 sdl2_ttf sdl2_gfx rtmidi
+brew install sdl2 sdl2_ttf rtmidi
 ```
 
 Then build as above.
 
 ### Windows
 
-- Install SDL2, SDL2_ttf, SDL2_gfx and RtMidi development libraries.
+- Install SDL2, SDL2_ttf and RtMidi development libraries.
 - Use MinGW or Visual Studio to build the sources (adjust includes/libs as needed).
 
 ## Running
@@ -95,6 +94,5 @@ MIT License (see [LICENSE](LICENSE))
 
 - [SDL2](https://www.libsdl.org/)
 - [SDL2_ttf](https://www.libsdl.org/projects/SDL_ttf/)
-- [SDL2_gfx](https://www.ferzkopp.net/Software/SDL2_gfx/Docs/html/index.html)
 - [RtMidi](https://github.com/thestk/rtmidi)
 - [DejaVu Fonts](https://dejavu-fonts.github.io/)
