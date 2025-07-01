@@ -20,7 +20,7 @@ A modular synthesizer application written in C, using SDL2 for graphics and audi
 
 - [SDL2](https://www.libsdl.org/) (graphics, audio, events)
 - [SDL2_ttf](https://github.com/libsdl-org/SDL_ttf) (font rendering)
-- [SDL2_gfx](https://www.ferzkopp.net/Software/SDL2_gfx/Docs/html/index.html) (Graphics primitives)
+- [SDL2_gfx](https://www.ferzkopp.net/Software/SDL2_gfx/Docs/html/index.html) (graphics primitives)
 - [RtMidi](https://github.com/thestk/rtmidi) (MIDI input)
 - [math.h], [string.h], [stdlib.h], [stdio.h]
 - A TrueType font (e.g., DejaVuSans.ttf; see below)
