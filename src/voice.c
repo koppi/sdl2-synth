@@ -23,7 +23,7 @@ void voice_render(Voice *v, const Oscillator *osc, float *stereo, int frames) {
         s *= env;
         stereo[n*2 + 0] += s;
         stereo[n*2 + 1] += s;
-        v->env_phase += 1.0f/44100.0f;
+        v->env_phase += 1.0f/48000.0f;
         if (v->env_phase > 1.0f) v->active = 0;
     }
 }
