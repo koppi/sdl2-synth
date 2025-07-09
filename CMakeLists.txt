@@ -16,6 +16,7 @@ set(SOURCES
         src/voice.c
 )
 add_executable(synth ${SOURCES})
+install(TARGETS synth DESTINATION bin)
 
 find_package(SDL2 CONFIG REQUIRED)
 find_package(SDL2_image CONFIG REQUIRED)
