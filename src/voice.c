@@ -3,11 +3,11 @@
 #include <math.h>
 
 void voice_init(Voice *v, float samplerate) {
-    v->active = 0; v->note = 0; v->velocity = 0; v->env_phase = 0;
+    v->active = 0; v->note = 0; v->velocity = 0; v->env_phase = 0; v->timestamp = 0;
 }
 
-void voice_on(Voice *v, float note, float velocity) {
-    v->active = 1; v->note = note; v->velocity = velocity; v->env_phase = 0;
+void voice_on(Voice *v, float note, float velocity, unsigned long long timestamp) {
+    v->active = 1; v->note = note; v->velocity = velocity; v->env_phase = 0; v->timestamp = timestamp;
 }
 
 void voice_off(Voice *v) { v->active = 0; }

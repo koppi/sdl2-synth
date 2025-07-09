@@ -16,6 +16,7 @@ typedef struct Synth {
     Arpeggiator arp;
     Midi midi;
     float cpu_usage;
+    unsigned long long timestamp_counter;
 } Synth;
 
 int  synth_init(Synth *synth, int samplerate, int buffer_size, int voices);

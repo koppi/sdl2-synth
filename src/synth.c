@@ -11,6 +11,7 @@ int synth_init(Synth *synth, int samplerate, int buffer_size, int voices) {
     midi_init(&synth->midi, synth);
     for (int i = 0; i < 4; ++i) osc_init(&synth->osc[i], samplerate);
     for (int v = 0; v < voices; ++v) voice_init(&synth->voices[v], samplerate);
+    synth->timestamp_counter = 0;
     return 1;
 }
 
@@ -71,22 +72,42 @@ void synth_set_param(Synth *synth, const char *param, float value) {
 }
 
 void synth_note_on(Synth *synth, int note, float velocity) {
-    // If note already playing, retrigger that voice
+    synth->timestamp_counter++; // Increment timestamp for new note
+
+    // 1. If note already playing, retrigger that voice
     for (int v = 0; v < synth->max_voices; ++v) {
         if (synth->voices[v].active && (int)synth->voices[v].note == note) {
-            voice_on(&synth->voices[v], note, velocity);
+            voice_on(&synth->voices[v], note, velocity, synth->timestamp_counter);
             return;
         }
     }
-    // Otherwise, find a free voice and use it
+
+    // 2. Otherwise, find a free voice and use it
     for (int v = 0; v < synth->max_voices; ++v) {
         if (!synth->voices[v].active) {
-            voice_on(&synth->voices[v], note, velocity);
+            voice_on(&synth->voices[v], note, velocity, synth->timestamp_counter);
             return;
         }
     }
-    // If none free, steal the oldest (voice stealing: here just reuse voice 0)
-    voice_on(&synth->voices[0], note, velocity);
+
+    // 3. If none free, steal the oldest note
+    unsigned long long min_timestamp = -1; // Max value for unsigned long long
+    int voice_to_steal_idx = -1;
+
+    for (int v = 0; v < synth->max_voices; ++v) {
+        // Only consider active voices for stealing
+        if (synth->voices[v].active) {
+            if (synth->voices[v].timestamp < min_timestamp) {
+                min_timestamp = synth->voices[v].timestamp;
+                voice_to_steal_idx = v;
+            }
+        }
+    }
+
+    // If a voice was found to steal (should always be one if max_voices > 0)
+    if (voice_to_steal_idx != -1) {
+        voice_on(&synth->voices[voice_to_steal_idx], note, velocity, synth->timestamp_counter);
+    }
 }
 
 void synth_note_off(Synth *synth, int note) {
