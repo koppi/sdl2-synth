@@ -1,6 +1,6 @@
 #include "midi.h"
 #include "synth.h"
-#include <rtmidi/rtmidi_c.h>
+#include <libremidi/libremidi-c.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -43,7 +43,7 @@ static const CCMapping cc_map[] = {
 
 #define CC_MAP_SIZE (sizeof(cc_map)/sizeof(cc_map[0]))
 
-static void midi_callback(double stamp, const unsigned char *msg, size_t len, void *user) {
+static void midi_callback(void *user, libremidi_timestamp stamp, const unsigned char *msg, size_t len) {
     struct Synth *synth = (struct Synth*)user;
     if (len >= 3) {
         unsigned char status = msg[0] & 0xF0;
@@ -70,18 +70,29 @@ static void midi_callback(double stamp, const unsigned char *msg, size_t len, vo
 }
 
 void midi_init(Midi *midi, struct Synth *synth) {
-    midi->rtmidi_in = rtmidi_in_create_default();
-    rtmidi_open_port(midi->rtmidi_in, 0, "SynthIn");
-    rtmidi_in_set_callback(midi->rtmidi_in, midi_callback, synth);
+    libremidi_midi_configuration config;
+    libremidi_midi_configuration_init(&config);
+
+    config.on_midi1_message.callback = (void (*)(void *, libremidi_timestamp, const unsigned char *, size_t))midi_callback;
+    config.on_midi1_message.context = synth;
+    config.version = MIDI1;
+    config.port_name = "SynthIn";
+    config.virtual_port = true;
+
+    libremidi_api_configuration api_config;
+    libremidi_midi_api_configuration_init(&api_config);
+
+    libremidi_midi_in_new(&config, &api_config, &midi->in);
+
     midi->enabled = 1;
     midi->last_cc = -1;
     midi->last_cc_value = 0;
 }
 
 void midi_shutdown(Midi *midi) {
-    if (midi->rtmidi_in) {
-        rtmidi_in_free(midi->rtmidi_in);
-        midi->rtmidi_in = NULL;
+    if (midi->in) {
+        libremidi_midi_in_free(midi->in);
+        midi->in = NULL;
     }
 }
 

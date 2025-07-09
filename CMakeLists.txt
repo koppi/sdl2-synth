@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.17)
 
-project(synth LANGUAGES C VERSION 0.0.1)
+project(synth LANGUAGES C CXX VERSION 0.0.1)
 
 set(SOURCES
         src/app.c
@@ -20,7 +20,9 @@ add_executable(synth ${SOURCES})
 find_package(SDL2 CONFIG REQUIRED)
 find_package(SDL2_image CONFIG REQUIRED)
 find_package(SDL2_ttf CONFIG REQUIRED)
-find_package(rtmidi CONFIG REQUIRED)
+
+set(LIBREMIDI_NO_JACK ON)
+add_subdirectory(deps/libremidi)
 
 target_link_libraries(synth
         PRIVATE
@@ -28,9 +30,10 @@ target_link_libraries(synth
         $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>
         $<IF:$<TARGET_EXISTS:SDL2_image::SDL2_image>,SDL2_image::SDL2_image,SDL2_image::SDL2_image-static>
         $<IF:$<TARGET_EXISTS:SDL2_ttf::SDL2_ttf>,SDL2_ttf::SDL2_ttf,SDL2_ttf::SDL2_ttf-static>
-        winmm RtMidi::rtmidi
+        libremidi::libremidi
 )
 
 if (WIN32)
+    target_link_libraries(synth PRIVATE winmm)
     add_compile_definitions(__WINDOWS_MM__)
 endif()

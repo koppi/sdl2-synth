@@ -1,9 +1,11 @@
 #pragma once
 
+#include <libremidi/libremidi-c.h>
+
 struct Synth;
 
 typedef struct {
-    void *rtmidi_in;
+    libremidi_midi_in_handle *in;
     int enabled;
     int last_cc;
     int last_cc_value;

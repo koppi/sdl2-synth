@@ -1,6 +1,6 @@
 # Modular Synth
 
-A modular synthesizer application written in C, using SDL2 for graphics and audio, and supporting MIDI input via RtMidi. The GUI is resizable and features oscilloscope and spectrum displays, keyboard input, and real-time control of oscillators, effects, mixer, and arpeggiator.
+A modular synthesizer application written in C, using SDL2 for graphics and audio, and supporting MIDI input via libremidi. The GUI is resizable and features oscilloscope and spectrum displays, keyboard input, and real-time control of oscillators, effects, mixer, and arpeggiator.
 
 ## Screenshot
 
@@ -20,7 +20,7 @@ A modular synthesizer application written in C, using SDL2 for graphics and audi
 
 - [SDL2](https://www.libsdl.org/) (graphics, audio, events)
 - [SDL2_ttf](https://github.com/libsdl-org/SDL_ttf) (font rendering)
-- [RtMidi](https://github.com/thestk/rtmidi) (MIDI input)
+- [libremidi](https://github.com/celtera/libremidi) (MIDI input)
 - [math.h], [string.h], [stdlib.h], [stdio.h]
 - A TrueType font (e.g., DejaVuSans.ttf; see below)
 
@@ -31,7 +31,7 @@ A modular synthesizer application written in C, using SDL2 for graphics and audi
 Install dependencies (example for Debian/Ubuntu):
 
 ```sh
-sudo apt-get install libsdl2-dev libsdl2-ttf-dev librtmidi-dev
+sudo apt-get install libsdl2-dev libsdl2-ttf-dev
 ```
 
 Clone and build:
@@ -47,14 +47,14 @@ make
 Install dependencies (with Homebrew):
 
 ```sh
-brew install sdl2 sdl2_ttf rtmidi
+brew install sdl2 sdl2_ttf
 ```
 
 Then build as above.
 
 ### Windows
 
-- Install SDL2, SDL2_ttf and RtMidi development libraries.
+- Install SDL2, SDL2_ttf and libremidi development libraries.
 - Use MinGW or Visual Studio to build the sources (adjust includes/libs as needed).
 
 ## Running
@@ -94,5 +94,5 @@ MIT License (see [LICENSE](LICENSE))
 
 - [SDL2](https://www.libsdl.org/)
 - [SDL2_ttf](https://www.libsdl.org/projects/SDL_ttf/)
-- [RtMidi](https://github.com/thestk/rtmidi)
+- [libremidi](https://github.com/celtera/libremidi)
 - [DejaVu Fonts](https://dejavu-fonts.github.io/)
