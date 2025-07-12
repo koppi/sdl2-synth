@@ -38,7 +38,10 @@ Clone and build:
 
 ```sh
 git clone https://github.com/koppi/sdl2-synth
-cd sdl2-synth && mkdir build && cd build && cmake .. && make
+cd sdl2-synth
+git submodule init
+git submodule update
+mkdir build && cd build && cmake .. && make
 ./synth
 ```
 
