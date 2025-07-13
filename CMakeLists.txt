@@ -38,10 +38,12 @@ FetchContent_MakeAvailable(SDL2_ttf)
 set(SDL2TTF_FREETYPE OFF)
 
 set(LIBREMIDI_NO_JACK ON)
+#set(LIBREMIDI_DOWNLOAD_CPPWINRT OFF)
+#set(LIBREMIDI_HEADER_ONLY OFF)
 FetchContent_Declare(
         libremidi
         GIT_REPOSITORY https://github.com/celtera/libremidi.git
-        GIT_TAG v5.3.0
+        GIT_TAG master
         GIT_SHALLOW TRUE
         GIT_PROGRESS TRUE
 )
