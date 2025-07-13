@@ -1,3 +1,0 @@
-[submodule "deps/libremidi"]
-	path = deps/libremidi
-	url = https://github.com/celtera/libremidi
