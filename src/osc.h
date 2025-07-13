@@ -4,13 +4,13 @@
 typedef enum { OSC_SINE, OSC_SAW, OSC_SQUARE, OSC_TRI } OscWaveform;
 
 typedef struct Oscillator {
-    OscWaveform waveform;
-    float pitch;
-    float phase;
-    float detune;
-    float gain;
-    float samplerate;
-    float phase_acc;
+  OscWaveform waveform;
+  float pitch;
+  float phase;
+  float detune;
+  float gain;
+  float samplerate;
+  float phase_acc;
 } Oscillator;
 
 void osc_init(Oscillator *osc, float samplerate);

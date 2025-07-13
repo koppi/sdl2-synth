@@ -1,8 +1,8 @@
 #pragma once
 
 typedef struct {
-    float osc_gain[4];
-    float master;
+  float osc_gain[4];
+  float master;
 } Mixer;
 
 void mixer_init(Mixer *mixer);

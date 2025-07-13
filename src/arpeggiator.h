@@ -5,15 +5,15 @@
 typedef enum { ARP_UP, ARP_DOWN, ARP_ORDER, ARP_RANDOM } ArpMode;
 
 typedef struct {
-    int enabled;
-    ArpMode mode;
-    int pattern[ARP_PATTERN_LEN];
-    int step;
-    float tempo;
-    float step_phase;
-    int held_notes[16];
-    int held_count;
-    float last_step_time;
+  int enabled;
+  ArpMode mode;
+  int pattern[ARP_PATTERN_LEN];
+  int step;
+  float tempo;
+  float step_phase;
+  int held_notes[16];
+  int held_count;
+  float last_step_time;
 } Arpeggiator;
 
 void arpeggiator_init(Arpeggiator *arp);

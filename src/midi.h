@@ -5,10 +5,10 @@
 struct Synth;
 
 typedef struct {
-    libremidi_midi_in_handle *in;
-    int enabled;
-    int last_cc;
-    int last_cc_value;
+  libremidi_midi_in_handle *in;
+  int enabled;
+  int last_cc;
+  int last_cc_value;
 } Midi;
 
 void midi_init(Midi *midi, struct Synth *synth);

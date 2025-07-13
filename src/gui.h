@@ -3,9 +3,9 @@
 #include <SDL.h>
 
 typedef struct Gui {
-    SDL_Renderer *renderer;
-    Synth *synth;
-    int selected_control;
+  SDL_Renderer *renderer;
+  Synth *synth;
+  int selected_control;
 } Gui;
 
 void gui_init(Gui *gui, SDL_Renderer *renderer, Synth *synth);
