@@ -48,7 +48,7 @@ void synth_audio_callback(void *userdata, Uint8 *stream, int len) {
   last = now;
 
   for (int n = 0; n < frames; ++n) {
-    oscilloscope_feed(0.5f * (out[n * 2 + 0] + out[n * 2 + 1]));
+	  //XXX oscilloscope_feed(0.5f * (out[n * 2 + 0] + out[n * 2 + 1]));
   }
 }
 
