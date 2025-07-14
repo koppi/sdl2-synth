@@ -43,7 +43,7 @@ set(LIBREMIDI_NO_JACK ON)
 FetchContent_Declare(
         libremidi
         GIT_REPOSITORY https://github.com/celtera/libremidi.git
-        GIT_TAG master
+        GIT_TAG v5.3.1
         GIT_SHALLOW TRUE
         GIT_PROGRESS TRUE
 )
