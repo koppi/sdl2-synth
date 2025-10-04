@@ -40,8 +40,6 @@ Clone and build:
 ```sh
 git clone https://github.com/koppi/sdl2-synth
 cd sdl2-synth
-git submodule init
-git submodule update
 mkdir build && cd build && cmake .. && make
 ./synth
 ```
@@ -51,14 +49,14 @@ mkdir build && cd build && cmake .. && make
 Install dependencies (with Homebrew):
 
 ```sh
-brew install sdl2 sdl2_ttf
+brew install sdl2 sdl2_ttf fftw
 ```
 
 Then build as above.
 
 ### Windows
 
-- Install SDL2, SDL2_ttf and libremidi development libraries.
+- Install SDL2, SDL2_ttf, fftw and libremidi development libraries.
 - Use MinGW or Visual Studio to build the sources (adjust includes/libs as needed).
 
 ## Running
