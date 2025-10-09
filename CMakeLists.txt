@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.1.2)
+cmake_minimum_required(VERSION 3.15)
 
 # set(CMAKE_BUILD_TYPE Debug)
 
@@ -43,11 +43,39 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(libremidi)
 
+FetchContent_Declare(
+        imgui
+        GIT_REPOSITORY https://github.com/ocornut/imgui.git
+        GIT_TAG master
+        GIT_SHALLOW TRUE
+        GIT_PROGRESS TRUE
+)
+FetchContent_MakeAvailable(imgui)
+
+
+
+set(IMGUI_SOURCES
+    ${imgui_SOURCE_DIR}/imgui.cpp
+    ${imgui_SOURCE_DIR}/imgui_draw.cpp
+    ${imgui_SOURCE_DIR}/imgui_tables.cpp
+    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    ${imgui_SOURCE_DIR}/imgui_demo.cpp
+)
+
+set(IMGUI_BACKENDS
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl2.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
+)
+
+add_library(imgui_lib STATIC ${IMGUI_SOURCES} ${IMGUI_BACKENDS} src/gui.cpp)
+set_source_files_properties(${IMGUI_SOURCES} ${IMGUI_BACKENDS} src/gui.cpp PROPERTIES LANGUAGE CXX)
+target_include_directories(imgui_lib PUBLIC ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends ${imgui_SOURCE_DIR})
+target_link_libraries(imgui_lib PUBLIC SDL2::SDL2 libremidi::libremidi)
+
 set(SOURCES
         src/app.c
         src/arpeggiator.c
         src/fx.c
-        src/gui.c
         src/main.c
         src/midi.c
         src/mixer.c
@@ -56,10 +84,11 @@ set(SOURCES
         src/synth.c
         src/voice.c
         src/cJSON.c
-        src/microui.c
 )
 add_executable(synth ${SOURCES})
 install(TARGETS synth DESTINATION bin)
+
+find_package(OpenGL REQUIRED)
 
 if( ${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
   target_link_libraries(synth
@@ -67,6 +96,7 @@ if( ${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
     SDL2
     SDL2_ttf
     libremidi::libremidi
+    imgui_lib
     m
   )
 
@@ -83,7 +113,9 @@ else()
         SDL2_image
         SDL2_ttf
         libremidi::libremidi
+        imgui_lib
         fftw3
         m
+        OpenGL::GL
       )
 endif()

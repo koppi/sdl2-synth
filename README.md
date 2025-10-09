@@ -18,8 +18,7 @@ A modular synthesizer application written in C, using SDL2 for graphics and audi
   - **Pulse Width Presets**: Standard duty cycles (10%, 25%, 50%, 75%, 90%)
   - **Unison Voices**: 1 to 8 voice layering
   - **Unison Spread**: Preset detuning amounts (Off, Tight, Medium, Wide, Extra Wide)
-- **Modern microui Interface**: Clean, responsive GUI using the microui library
-- **Mixer**: Control the mix and master volume of each oscillator with bus compression.
+  - **Modern Dear ImGui Interface**: Clean, responsive GUI using the Dear ImGui library- **Mixer**: Control the mix and master volume of each oscillator with bus compression.
 - **Effects**: Flanger, delay, and reverb with real-time controls.
 - **Arpeggiator**: Multiple modes, adjustable tempo, and enable/disable.
 - **Oscilloscope & Spectrum**: Visualize output waveform and frequency spectrum.
@@ -30,7 +29,7 @@ A modular synthesizer application written in C, using SDL2 for graphics and audi
 
 - [SDL2](https://www.libsdl.org/) (graphics, audio, events)
 - [SDL2_ttf](https://github.com/libsdl-org/SDL_ttf) (font rendering)
-- [microui](https://github.com/rxi/microui) (GUI library)
+- [Dear ImGui](https://github.com/ocornut/imgui) (GUI library)
 - [libremidi](https://github.com/celtera/libremidi) (MIDI input)
 - [FFTW3](http://www.fftw.org/) (Fast Fourier Transform)
 - [math.h], [string.h], [stdlib.h], [stdio.h]
@@ -109,5 +108,5 @@ MIT License (see [LICENSE](LICENSE))
 - [SDL2_ttf](https://www.libsdl.org/projects/SDL_ttf/)
 - [libremidi](https://github.com/celtera/libremidi)
 - [FFTW3](http://www.fftw.org/)
-- [microui](https://github.com/rxi/microui)
+- [Dear ImGui](https://github.com/ocornut/imgui)
 - [DejaVu Fonts](https://dejavu-fonts.github.io/)

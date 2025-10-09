@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "oscilloscope.h"
+#include "gui.h"
 
 int app_init(App *app) {
   memset(app, 0, sizeof(App));
@@ -16,9 +17,12 @@ int app_init(App *app) {
     return 0;
   }
 
-  if (TTF_Init() == -1) {
-    return 0;
-  }
+  // GL 3.0 + GLSL 130
+  const char* glsl_version = "#version 130";
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 
   SDL_DisplayMode dm;
   if (SDL_GetCurrentDisplayMode(0, &dm) != 0) {
@@ -30,22 +34,23 @@ int app_init(App *app) {
 
   app->window = SDL_CreateWindow("Modular Synth", SDL_WINDOWPOS_CENTERED,
                                  SDL_WINDOWPOS_CENTERED, dm.w, dm.h,
-                                 SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+                                 SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
   if (!app->window) {
     return 0;
   }
 
-  app->renderer = SDL_CreateRenderer(app->window, -1, SDL_RENDERER_ACCELERATED);
-  if (!app->renderer) {
-    return 0;
+  app->gl_context = SDL_GL_CreateContext(app->window);
+  if (!app->gl_context) {
+      return 0;
   }
+  SDL_GL_MakeCurrent(app->window, app->gl_context);
+  SDL_GL_SetSwapInterval(1); // Enable vsync
 
   if (!synth_init(&app->synth, 48000, 1024, 64)) {
     return 0;
   }
 
-  gui_init(&app->gui, app->renderer, &app->synth);
-  app->font = gui_get_font();
+  gui_init(app->window, app->gl_context);
   oscilloscope_init();
 
   SDL_AudioSpec want = {0}, got = {0};
@@ -116,6 +121,7 @@ static void handle_keyboard_note(App *app, SDL_Keycode key, int is_down) {
 void app_poll_events(App *app) {
   SDL_Event e;
   while (SDL_PollEvent(&e)) {
+    gui_handle_event(&e);
     if (e.type == SDL_QUIT)
       app->quit = 1;
     if (e.type == SDL_KEYDOWN) {
@@ -136,7 +142,6 @@ void app_poll_events(App *app) {
     if (e.type == SDL_KEYUP) {
       handle_keyboard_note(app, e.key.keysym.sym, 0);
     }
-    gui_handle_event(&app->gui, &e);
   }
 }
 
@@ -158,7 +163,6 @@ void app_update(App *app) {
     fps_frame_count = 0;
   }
   
-  gui_update(&app->gui);
   char title[256];
   snprintf(title, sizeof(title),
            "Modular Synth - Voices %d/%d | CPU %.1f%% | FPS %.1f | Comp: %.1fdB | Arp: %s",
@@ -169,80 +173,18 @@ void app_update(App *app) {
   SDL_SetWindowTitle(app->window, title);
 }
 
-void app_render_help(App *app) {
-  SDL_Rect help_rect = {50, 50, 540, 380};
-  SDL_SetRenderDrawBlendMode(app->renderer, SDL_BLENDMODE_BLEND);
-  SDL_SetRenderDrawColor(app->renderer, 0, 0, 0, 200);
-  SDL_RenderFillRect(app->renderer, &help_rect);
-
-  if (!app->font) {
-    // Font not loaded, cannot render help text
-    return;
-  }
-
-  int y = 60;
-  int x = 60;
-  size_t midpoint = (CC_MAP_SIZE + 1) / 2;
-
-  for (size_t i = 0; i < midpoint; ++i) {
-    char text[128];
-    snprintf(text, sizeof(text), "CC %d: %s", cc_map[i].cc, cc_map[i].param);
-
-    SDL_Color color = {255, 255, 255, 255};
-    SDL_Surface *surface = TTF_RenderText_Solid(app->font, text, color);
-    SDL_Texture *texture = SDL_CreateTextureFromSurface(app->renderer, surface);
-
-    SDL_Rect dst_rect = {x, y, surface->w, surface->h};
-    SDL_RenderCopy(app->renderer, texture, NULL, &dst_rect);
-
-    SDL_FreeSurface(surface);
-    SDL_DestroyTexture(texture);
-
-    y += 20;
-  }
-
-  y = 60;
-  x = 320;
-
-  for (size_t i = midpoint; i < CC_MAP_SIZE; ++i) {
-    char text[128];
-    snprintf(text, sizeof(text), "CC %d: %s", cc_map[i].cc, cc_map[i].param);
-
-    SDL_Color color = {255, 255, 255, 255};
-    SDL_Surface *surface = TTF_RenderText_Solid(app->font, text, color);
-    SDL_Texture *texture = SDL_CreateTextureFromSurface(app->renderer, surface);
-
-    SDL_Rect dst_rect = {x, y, surface->w, surface->h};
-    SDL_RenderCopy(app->renderer, texture, NULL, &dst_rect);
-
-    SDL_FreeSurface(surface);
-    SDL_DestroyTexture(texture);
-
-    y += 20;
-  }
-}
-
 void app_render(App *app) {
-  SDL_SetRenderDrawColor(app->renderer, 18, 18, 22, 255);
-  SDL_RenderClear(app->renderer);
-  gui_draw(&app->gui);
-
-  if (app->show_help) {
-    app_render_help(app);
-  }
-
-  SDL_RenderPresent(app->renderer);
+    gui_draw(&app->synth, app->window, app->gl_context);
+    SDL_GL_SwapWindow(app->window);
 }
 
 void app_shutdown(App *app) {
   SDL_CloseAudioDevice(app->audio);
-  gui_shutdown(&app->gui);
+  gui_shutdown();
   oscilloscope_shutdown();
   synth_shutdown(&app->synth);
-  if (app->renderer)
-    SDL_DestroyRenderer(app->renderer);
+  SDL_GL_DeleteContext(app->gl_context);
   if (app->window)
     SDL_DestroyWindow(app->window);
-  TTF_Quit();
   SDL_Quit();
 }

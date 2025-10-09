@@ -1,18 +1,17 @@
 #pragma once
 #include "synth.h"
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_ttf.h>
 
-typedef struct Gui {
-  SDL_Renderer *renderer;
-  Synth *synth;
-  int selected_control;
-} Gui;
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-void gui_init(Gui *gui, SDL_Renderer *renderer, Synth *synth);
-void gui_shutdown(Gui *gui);
-void gui_handle_event(Gui *gui, const SDL_Event *e);
-void gui_update(Gui *gui);
-void gui_draw(Gui *gui);
-TTF_Font* gui_get_font();
+void gui_init(SDL_Window *window, SDL_GLContext gl_context);
+void gui_shutdown();
+void gui_handle_event(const SDL_Event *event);
+void gui_draw(Synth *synth, SDL_Window *window, SDL_GLContext gl_context);
 void gui_set_key_pressed(int midi_note, int is_pressed);
+
+#ifdef __cplusplus
+}
+#endif

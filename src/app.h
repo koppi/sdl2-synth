@@ -1,19 +1,15 @@
 #pragma once
-#include "gui.h"
 #include "synth.h"
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_ttf.h>
 
 typedef struct {
   SDL_Window *window;
-  SDL_Renderer *renderer;
+  SDL_GLContext gl_context;
   SDL_AudioDeviceID audio;
   Synth synth;
-  Gui gui;
   int quit;
   int show_help;
-  TTF_Font *font;
-  
+
   // Frame rate timing
   Uint32 last_frame_time;
   Uint32 frame_count;
