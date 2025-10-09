@@ -1,7 +1,7 @@
 #pragma once
 #include "synth.h"
-#include <SDL.h>
-#include <SDL_ttf.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 
 typedef struct Gui {
   SDL_Renderer *renderer;

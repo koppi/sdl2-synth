@@ -12,7 +12,7 @@ int app_init(App *app) {
   app->frame_count = 0;
   app->fps = 0.0f;
   
-  if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS) < 0) {
+  if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO) < 0) {
     return 0;
   }
 

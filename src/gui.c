@@ -1,7 +1,7 @@
 #include "gui.h"
 #include "oscilloscope.h"
-#include <SDL.h>
-#include <SDL_ttf.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -77,11 +77,11 @@ static void r_end(void) {
 
 static void r_push_clip_rect(mu_Rect rect) {
   SDL_Rect clip = {rect.x, rect.y, rect.w, rect.h};
-  SDL_RenderSetClipRect(renderer, &clip);
+  // SDL_RenderSetClipRect(renderer, &clip);
 }
 
 static void r_pop_clip_rect(void) {
-  SDL_RenderSetClipRect(renderer, NULL);
+  // SDL_RenderSetClipRect(renderer, NULL);
 }
 
 static void r_draw_rect(mu_Rect rect, mu_Color color) {

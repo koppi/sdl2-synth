@@ -1,10 +1,17 @@
 #include "oscilloscope.h"
 #include "synth.h"
-#include <SDL.h>
-#include <SDL_ttf.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+
+#if __EMSCRIPTEN__
+void oscilloscope_init() {}
+void oscilloscope_shutdown() {}
+void oscilloscope_update_fft(float sample) {}
+void oscilloscope_feed(float sample) {}
+void oscilloscope_draw(SDL_Renderer *renderer, const struct Synth *synth,
+                       int x, int y, int w, int h, TTF_Font *font) {}
+#else
 #include <fftw3.h>
 
 #ifndef M_PI
@@ -26,10 +33,6 @@ static float waterfall_history[WATERFALL_HEIGHT][FFT_SIZE / 2];
 static float waterfall_history[WATERFALL_HEIGHT][FFT_SIZE / 2];
 static float hann_window[FFT_SIZE];
 static int fft_input_buffer_pos = 0;
-
-
-
-
 
 void oscilloscope_init() {
     // Create Hann window
@@ -252,3 +255,5 @@ void oscilloscope_draw(SDL_Renderer *renderer, const struct Synth *synth,
     }
   }
 }
+
+#endif

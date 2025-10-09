@@ -1,8 +1,8 @@
 #pragma once
 
-#include <SDL_ttf.h>
+#include <SDL2/SDL_ttf.h>
 #include "synth.h"
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #define FFT_SIZE 2048
 #define WATERFALL_HEIGHT 256
 

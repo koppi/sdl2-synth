@@ -5,7 +5,7 @@
 #include "mixer.h"
 #include "osc.h"
 #include "voice.h"
-#include <SDL.h>
+#include <SDL2/SDL.h>
 
 typedef struct {
   int note;
