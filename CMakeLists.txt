@@ -67,8 +67,8 @@ set(IMGUI_BACKENDS
     ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
 )
 
-add_library(imgui_lib STATIC ${IMGUI_SOURCES} ${IMGUI_BACKENDS} src/gui.cpp)
-set_source_files_properties(${IMGUI_SOURCES} ${IMGUI_BACKENDS} src/gui.cpp PROPERTIES LANGUAGE CXX)
+add_library(imgui_lib STATIC ${IMGUI_SOURCES} ${IMGUI_BACKENDS})
+set_source_files_properties(${IMGUI_SOURCES} ${IMGUI_BACKENDS} PROPERTIES LANGUAGE CXX)
 target_include_directories(imgui_lib PUBLIC ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends ${imgui_SOURCE_DIR})
 target_link_libraries(imgui_lib PUBLIC SDL2::SDL2 libremidi::libremidi)
 
@@ -84,9 +84,13 @@ set(SOURCES
         src/synth.c
         src/voice.c
         src/cJSON.c
+        src/gui.cpp
 )
 add_executable(synth ${SOURCES})
+set_source_files_properties(src/gui.cpp PROPERTIES LANGUAGE CXX)
 install(TARGETS synth DESTINATION bin)
+file(COPY "DejaVuSans.ttf" DESTINATION "${CMAKE_BINARY_DIR}")
+file(COPY "default_config.json" DESTINATION "${CMAKE_BINARY_DIR}")
 
 find_package(OpenGL REQUIRED)
 

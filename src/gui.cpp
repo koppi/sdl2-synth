@@ -6,10 +6,21 @@
 #include <stdio.h>
 #include <string.h>
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
+#include <SDL_opengl.h>
 #include <GL/gl.h>
 
 // Keyboard state
 static int pressed_keys[128] = {0}; // 0: not pressed, 1: pressed
+
+static SDL_Renderer *g_renderer = NULL;
+static TTF_Font *g_font = NULL;
+
+static GLuint g_oscilloscope_gl_texture = 0;
+static SDL_Surface* g_oscilloscope_surface = NULL;
+static SDL_Renderer* g_oscilloscope_renderer = NULL;
+static int osc_width = 500;
+static int osc_height = 300;
 
 void gui_init(SDL_Window *window, SDL_GLContext gl_context) {
     // Setup Dear ImGui context
@@ -23,9 +34,70 @@ void gui_init(SDL_Window *window, SDL_GLContext gl_context) {
     // Setup Platform/Renderer backends
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
     ImGui_ImplOpenGL3_Init("#version 130");
+
+    g_renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    if (!g_renderer) {
+        fprintf(stderr, "Failed to create SDL renderer: %s\n", SDL_GetError());
+    }
+
+    if (TTF_Init() == -1) {
+        fprintf(stderr, "Failed to initialize SDL_ttf: %s\n", TTF_GetError());
+    }
+
+    g_font = TTF_OpenFont("DejaVuSans.ttf", 12);
+    if (!g_font) {
+        fprintf(stderr, "Failed to load font: %s\n", TTF_GetError());
+    }
+
+    oscilloscope_init();
+
+    // Initialize persistent oscilloscope rendering resources
+    g_oscilloscope_surface = SDL_CreateRGBSurfaceWithFormat(0, osc_width, osc_height, 32, SDL_PIXELFORMAT_RGBA32);
+    if (!g_oscilloscope_surface) {
+        fprintf(stderr, "Failed to create g_oscilloscope_surface: %s\n", SDL_GetError());
+    } else {
+        g_oscilloscope_renderer = SDL_CreateSoftwareRenderer(g_oscilloscope_surface);
+        if (!g_oscilloscope_renderer) {
+            fprintf(stderr, "Failed to create g_oscilloscope_renderer: %s\n", SDL_GetError());
+            SDL_FreeSurface(g_oscilloscope_surface);
+            g_oscilloscope_surface = NULL;
+        }
+    }
+
+    glGenTextures(1, &g_oscilloscope_gl_texture);
+    glBindTexture(GL_TEXTURE_2D, g_oscilloscope_gl_texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, osc_width, osc_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL); // Allocate texture memory
 }
 
 void gui_shutdown() {
+    oscilloscope_shutdown();
+
+    if (g_oscilloscope_gl_texture) {
+        glDeleteTextures(1, &g_oscilloscope_gl_texture);
+        g_oscilloscope_gl_texture = 0;
+    }
+    if (g_oscilloscope_renderer) {
+        SDL_DestroyRenderer(g_oscilloscope_renderer);
+        g_oscilloscope_renderer = NULL;
+    }
+    if (g_oscilloscope_surface) {
+        SDL_FreeSurface(g_oscilloscope_surface);
+        g_oscilloscope_surface = NULL;
+    }
+
+    if (g_font) {
+        TTF_CloseFont(g_font);
+        g_font = NULL;
+    }
+    TTF_Quit();
+
+    if (g_renderer) {
+        SDL_DestroyRenderer(g_renderer);
+        g_renderer = NULL;
+    }
+
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext(NULL);
@@ -42,6 +114,8 @@ void gui_set_key_pressed(int midi_note, int is_pressed) {
 }
 
 void gui_draw(Synth *synth, SDL_Window *window, SDL_GLContext gl_context) {
+    SDL_GL_MakeCurrent(window, gl_context);
+
     // Start the Dear ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame();
@@ -52,7 +126,7 @@ void gui_draw(Synth *synth, SDL_Window *window, SDL_GLContext gl_context) {
 
     ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always, ImVec2(0, 0));
     ImGui::SetNextWindowSize(ImVec2((float)window_width, (float)window_height), ImGuiCond_Always);
-    ImGui::Begin("Synth", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
+    ImGui::Begin("Synth", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
 
     // Oscillators
     if (ImGui::CollapsingHeader("Oscillators", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -153,10 +227,47 @@ void gui_draw(Synth *synth, SDL_Window *window, SDL_GLContext gl_context) {
         ImGui::Checkbox("Polyphonic", (bool*)&synth->arp.polyphonic);
     }
 
+    // Oscilloscope
+    ImGui::Begin("Oscilloscope");
+    ImVec2 content_size = ImGui::GetContentRegionAvail();
+    if (content_size.x > 0 && content_size.y > 0) {
+        if ((int)content_size.x != osc_width || (int)content_size.y != osc_height) {
+            // Recreate resources if size has changed
+            if (g_oscilloscope_renderer) SDL_DestroyRenderer(g_oscilloscope_renderer);
+            if (g_oscilloscope_surface) SDL_FreeSurface(g_oscilloscope_surface);
+            if (g_oscilloscope_gl_texture) glDeleteTextures(1, &g_oscilloscope_gl_texture);
+
+            osc_width = (int)content_size.x;
+            osc_height = (int)content_size.y;
+
+            g_oscilloscope_surface = SDL_CreateRGBSurfaceWithFormat(0, osc_width, osc_height, 32, SDL_PIXELFORMAT_RGBA32);
+            g_oscilloscope_renderer = SDL_CreateSoftwareRenderer(g_oscilloscope_surface);
+            
+            glGenTextures(1, &g_oscilloscope_gl_texture);
+            glBindTexture(GL_TEXTURE_2D, g_oscilloscope_gl_texture);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, osc_width, osc_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+        }
+
+        if (g_oscilloscope_renderer && g_oscilloscope_surface && g_oscilloscope_gl_texture && g_font) {
+            SDL_SetRenderDrawColor(g_oscilloscope_renderer, 0, 0, 0, 0);
+            SDL_RenderClear(g_oscilloscope_renderer);
+            oscilloscope_draw(g_oscilloscope_renderer, synth, 0, 0, osc_width, osc_height, g_font);
+
+            glBindTexture(GL_TEXTURE_2D, g_oscilloscope_gl_texture);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, osc_width, osc_height, GL_RGBA, GL_UNSIGNED_BYTE, g_oscilloscope_surface->pixels);
+
+            ImGui::Image((void*)(intptr_t)g_oscilloscope_gl_texture, ImVec2((float)osc_width, (float)osc_height));
+        }
+    }
+    ImGui::End();
+
     ImGui::End();
 
     // Rendering
     ImGui::Render();
+
     SDL_GL_MakeCurrent(window, gl_context);
     glViewport(0, 0, (int)ImGui::GetIO().DisplaySize.x, (int)ImGui::GetIO().DisplaySize.y);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);

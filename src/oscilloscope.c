@@ -12,7 +12,6 @@ void oscilloscope_feed(float sample) {}
 void oscilloscope_draw(SDL_Renderer *renderer, const struct Synth *synth,
                        int x, int y, int w, int h, TTF_Font *font) {}
 #else
-#include <fftw3.h>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -25,57 +24,16 @@ static float waveform_buffer[WAVEFORM_BUFFER_SIZE];
 static int waveform_write_pos = 0;
 static int buffer_ready = 0;
 
-// for FFT waterfall
-static double *in;
-static fftw_complex *out;
-static fftw_plan fft_plan;
-static float waterfall_history[WATERFALL_HEIGHT][FFT_SIZE / 2];
-static float waterfall_history[WATERFALL_HEIGHT][FFT_SIZE / 2];
-static float hann_window[FFT_SIZE];
-static int fft_input_buffer_pos = 0;
-
 void oscilloscope_init() {
-    // Create Hann window
-    for (int i = 0; i < FFT_SIZE; i++) {
-        hann_window[i] = 0.5f * (1.0f - cosf(2.0f * M_PI * i / (FFT_SIZE - 1)));
-    }
-
-    // Allocate memory for FFTW arrays
-    in = (double*) fftw_malloc(sizeof(double) * FFT_SIZE);
-    out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * (FFT_SIZE / 2 + 1));
-    fft_plan = fftw_plan_dft_r2c_1d(FFT_SIZE, in, out, FFTW_MEASURE);
-
-    // Initialize waterfall history to 0
-    memset(waterfall_history, 0, sizeof(waterfall_history));
+    // Initialize waveform buffer to 0
+    memset(waveform_buffer, 0, sizeof(waveform_buffer));
 }
 
 void oscilloscope_shutdown() {
-    fftw_destroy_plan(fft_plan);
-    fftw_free(in);
-    fftw_free(out);
 }
 
 void oscilloscope_update_fft(float sample) {
-    if (fft_input_buffer_pos < FFT_SIZE) {
-        in[fft_input_buffer_pos] = sample * hann_window[fft_input_buffer_pos];
-        fft_input_buffer_pos++;
-    }
-
-    if (fft_input_buffer_pos == FFT_SIZE) {
-        fftw_execute(fft_plan);
-
-        // Scroll waterfall history
-        memmove(&waterfall_history[1], &waterfall_history[0], sizeof(float) * (WATERFALL_HEIGHT - 1) * (FFT_SIZE / 2));
-
-        // Calculate magnitudes and store in the first row of history
-        for (int i = 0; i < FFT_SIZE / 2; i++) {
-            float mag = sqrt(out[i][0] * out[i][0] + out[i][1] * out[i][1]);
-            waterfall_history[0][i] = 20.0f * log10f(mag + 1e-6f);
-        }
-
-        // Reset buffer position
-        fft_input_buffer_pos = 0;
-    }
+    (void)sample;
 }
 
 void oscilloscope_feed(float sample) {
@@ -106,38 +64,11 @@ static void draw_text(SDL_Renderer *renderer, const char *text, int x, int y,
   }
 }
 
-static void get_color_for_magnitude(float mag, Uint8* r, Uint8* g, Uint8* b) {
-    float value = (mag + 80.0f) / 80.0f;
-    if (value < 0.0f) value = 0.0f;
-    if (value > 1.0f) value = 1.0f;
-
-    // Simple viridis-like color map
-    if (value < 0.25f) {
-        *r = 0;
-        *g = (Uint8)(255 * (value / 0.25f));
-        *b = (Uint8)(255 * (1.0f - (value / 0.25f)));
-    } else if (value < 0.5f) {
-        *r = 0;
-        *g = 255;
-        *b = (Uint8)(255 * ((value - 0.25f) / 0.25f));
-    } else if (value < 0.75f) {
-        *r = (Uint8)(255 * ((value - 0.5f) / 0.25f));
-        *g = 255;
-        *b = (Uint8)(255 * (1.0f - (value - 0.5f) / 0.25f));
-    } else {
-        *r = 255;
-        *g = (Uint8)(255 * (1.0f - (value - 0.75f) / 0.25f));
-        *b = 0;
-    }
-}
-
 void oscilloscope_draw(SDL_Renderer *renderer, const struct Synth *synth,
                        int x, int y, int w, int h, TTF_Font *font) {
   (void)synth; // Not used in this implementation
 
-  int waveform_h = h / 3;
-  int waterfall_y = y + waveform_h;
-  int waterfall_h = h - waveform_h;
+  int waveform_h = h; // Use the full height for the waveform
   
   // Draw oscilloscope background
   SDL_Rect scope_area = {x, y, w, waveform_h};
@@ -183,8 +114,8 @@ void oscilloscope_draw(SDL_Renderer *renderer, const struct Synth *synth,
         float sample1 = waveform_buffer[sample_idx1];
         float sample2 = waveform_buffer[sample_idx2];
         
-        int y1 = y + waveform_h/2 - (int)(sample1 * (waveform_h/2 - 10));
-        int y2 = y + waveform_h/2 - (int)(sample2 * (waveform_h/2 - 10));
+        int y1 = y + waveform_h/2 - (int)(sample1 * (waveform_h/2));
+        int y2 = y + waveform_h/2 - (int)(sample2 * (waveform_h/2));
         
         if (y1 < y) y1 = y;
         if (y1 >= y + waveform_h) y1 = y + waveform_h - 1;
@@ -198,61 +129,11 @@ void oscilloscope_draw(SDL_Renderer *renderer, const struct Synth *synth,
   // Draw border for waveform
   SDL_SetRenderDrawColor(renderer, 100, 100, 120, 255);
   SDL_RenderDrawRect(renderer, &scope_area);
-
-  // Draw waterfall
-  SDL_Rect waterfall_area = {x, waterfall_y, w, waterfall_h};
-  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-  SDL_RenderFillRect(renderer, &waterfall_area);
-
-  for (int row = 0; row < waterfall_h; row++) {
-      if (row >= WATERFALL_HEIGHT) break;
-      for (int col = 0; col < w; col++) {
-          int fft_bin = (int)((float)col / (w - 1) * (FFT_SIZE / 2 - 1));
-          float magnitude = waterfall_history[row][fft_bin];
-
-          Uint8 r, g, b;
-          get_color_for_magnitude(magnitude, &r, &g, &b);
-          
-          SDL_SetRenderDrawColor(renderer, r, g, b, 255);
-          SDL_RenderDrawPoint(renderer, x + col, waterfall_y + row);
-      }
-  }
-
-  // Draw border for waterfall
-  SDL_SetRenderDrawColor(renderer, 100, 100, 120, 255);
-  SDL_RenderDrawRect(renderer, &waterfall_area);
   
   // Draw labels
   if (font) {
     SDL_Color text_color = {180, 180, 200, 255};
     draw_text(renderer, "Waveform", x + 10, y + 5, text_color, font);
-    draw_text(renderer, "Waterfall Spectrogram", x + 10, waterfall_y + 5, text_color, font);
-
-    // Add frequency labels to the waterfall spectrogram
-    float nyquist_freq = synth->sample_rate / 2.0f;
-    float freq_scale = (float)w / (FFT_SIZE / 2); // Pixels per FFT bin
-
-    // Frequencies to label (Hz)
-    float label_freqs[] = {100.0f, 500.0f, 1000.0f, 1048.0f, 5000.0f, 10000.0f, nyquist_freq};
-    char label_texts[6][10]; // Buffer for labels
-
-    for (int i = 0; i < sizeof(label_freqs) / sizeof(label_freqs[0]); ++i) {
-        float freq = label_freqs[i];
-        if (freq > nyquist_freq) continue;
-
-        int fft_bin = (int)(freq / nyquist_freq * (FFT_SIZE / 2));
-        int px_x = x + (int)(fft_bin * freq_scale);
-
-        // Avoid drawing labels too close to each other or outside bounds
-        if (px_x > x + 20 && px_x < x + w - 20) {
-            if (freq >= 1000.0f) {
-                snprintf(label_texts[i], sizeof(label_texts[i]), "%.0fkHz", freq / 1000.0f);
-            } else {
-                snprintf(label_texts[i], sizeof(label_texts[i]), "%.0fHz", freq);
-            }
-            draw_text(renderer, label_texts[i], px_x, waterfall_y + waterfall_h - 20, text_color, font);
-        }
-    }
   }
 }
 
