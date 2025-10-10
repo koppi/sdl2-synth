@@ -121,7 +121,7 @@ void gui_draw(Synth *synth, SDL_Window *window, SDL_GLContext gl_context) {
 
     // Mixer
     if (ImGui::CollapsingHeader("Mixer", ImGuiTreeNodeFlags_DefaultOpen)) {
-        ImGui::Columns(6, "mixer_columns", true);
+        ImGui::Columns(1, "mixer_columns", true);
         for (int i = 0; i < 4; ++i) {
             char label[16];
             sprintf(label, "OSC%d", i + 1);
