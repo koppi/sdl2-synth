@@ -1,7 +1,7 @@
 #include "gui.h"
-#include "/home/koppi/src/github/koppi/sdl2-synth/build/_deps/imgui-src/imgui.h"
-#include "/home/koppi/src/github/koppi/sdl2-synth/build/_deps/imgui-src/backends/imgui_impl_sdl2.h"
-#include "/home/koppi/src/github/koppi/sdl2-synth/build/_deps/imgui-src/backends/imgui_impl_opengl3.h"
+#include "imgui.h"
+#include "backends/imgui_impl_sdl2.h"
+#include "backends/imgui_impl_opengl3.h"
 #include "oscilloscope.h"
 #include <stdio.h>
 #include <string.h>
