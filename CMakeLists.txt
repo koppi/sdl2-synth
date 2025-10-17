@@ -90,7 +90,6 @@ add_executable(synth ${SOURCES})
 set_source_files_properties(src/gui.cpp PROPERTIES LANGUAGE CXX)
 install(TARGETS synth DESTINATION bin)
 file(COPY "DejaVuSans.ttf" DESTINATION "${CMAKE_BINARY_DIR}")
-file(COPY "default_config.json" DESTINATION "${CMAKE_BINARY_DIR}")
 
 find_package(OpenGL REQUIRED)
 
