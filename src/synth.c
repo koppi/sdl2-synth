@@ -490,7 +490,7 @@ cJSON_AddItemToObject(root, "oscillators", oscillators);
     cJSON_AddNumberToObject(mixer, "master_pan", synth->mixer.master_pan);
     cJSON_AddNumberToObject(mixer, "master_width", synth->mixer.master_width);
     cJSON *osc_gains = cJSON_CreateArray();
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < 4; ++i) {
         cJSON_AddItemToArray(osc_gains, cJSON_CreateNumber(synth->mixer.osc_gain[i]));
     }
     cJSON_AddItemToObject(mixer, "osc_gains", osc_gains);
