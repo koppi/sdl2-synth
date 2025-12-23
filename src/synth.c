@@ -192,7 +192,7 @@ int synth_init(Synth *synth, int samplerate, int buffer_size, int voices) {
   // synth_play_startup_melody(synth); // Start the melody at startup
   
   char param_name[16];
-  for (int i = 0; i < 6; ++i) { // Loop for all 6 oscillators
+  for (int i = 0; i < 4; ++i) { // Loop for all 4 oscillators
     osc_init(&synth->osc[i], samplerate);
 
     // Default parameters for main oscillators (0-3)
@@ -218,14 +218,7 @@ int synth_init(Synth *synth, int samplerate, int buffer_size, int voices) {
   }
   
   // Specific default parameters for Bass (osc[4])
-  synth_set_param(synth, "osc5.waveform", 1.0f); // Saw wave for bass
-  synth_set_param(synth, "osc5.pitch", -12.0f); // One octave down
-  synth_set_param(synth, "osc5.gain", 0.7f);
-
-  // Specific default parameters for Percussion (osc[5])
-  synth_set_param(synth, "osc6.waveform", 4.0f); // Noise for percussion
-  synth_set_param(synth, "osc6.gain", 0.5f);
-  // For percussion, we might want a very short envelope, but that's handled by voice/envelope, not directly by osc params.
+  
   
   synth_set_param(synth, "osc1.waveform", 0.0f);
   synth_set_param(synth, "osc2.waveform", 0.0f);
@@ -331,7 +324,7 @@ void synth_handle_cc(Synth *synth, int cc, int value) {
 void synth_set_param(Synth *synth, const char *param, float value) {
   if (strncmp(param, "osc", 3) == 0) {
     int i = param[3] - '1';
-    if (i >= 0 && i < 6) // Changed from i < 4 to i < 6
+    if (i >= 0 && i < 4)
       osc_set_param(&synth->osc[i], param + 5, value);
   } else if (strncmp(param, "fx.", 3) == 0) {
     fx_set_param(&synth->fx, param + 3, value);
@@ -446,7 +439,7 @@ char* synth_save_preset_json(const Synth *synth) {
 
     // Save Oscillator parameters
     cJSON *oscillators = cJSON_CreateArray();
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < 4; ++i) {
         cJSON *osc = cJSON_CreateObject();
         cJSON_AddNumberToObject(osc, "waveform", synth->osc[i].waveform);
         cJSON_AddNumberToObject(osc, "pitch", synth->osc[i].pitch);
@@ -588,7 +581,7 @@ void synth_load_preset_json(Synth *synth, const char *json_string) {
     cJSON *oscillators = cJSON_GetObjectItemCaseSensitive(root, "oscillators");
     if (cJSON_IsArray(oscillators)) {
         int num_oscillators = cJSON_GetArraySize(oscillators);
-        for (int i = 0; i < num_oscillators && i < 6; ++i) { // Limit to 6 oscillators
+        for (int i = 0; i < num_oscillators && i < 4; ++i) { // Limit to 4 oscillators
             cJSON *osc = cJSON_GetArrayItem(oscillators, i);
             if (cJSON_IsObject(osc)) {
                 cJSON *waveform = cJSON_GetObjectItemCaseSensitive(osc, "waveform");
@@ -845,8 +838,8 @@ void synth_load_default_config(Synth *synth) {
 void synth_randomize_parameters(Synth *synth) {
     char param_name[32];
     
-    // Randomize all oscillators (0-5)
-    for (int i = 0; i < 6; i++) {
+    // Randomize all oscillators (0-3)
+    for (int i = 0; i < 4; i++) {
         // Randomize waveform (0-4: SINE, SAW, SQUARE, TRI, NOISE)
         float random_waveform = (float)(rand() % 5);
         snprintf(param_name, sizeof(param_name), "osc%d.waveform", i + 1);
@@ -885,7 +878,7 @@ void synth_randomize_parameters(Synth *synth) {
 }
 
 void synth_randomize_oscillator(Synth *synth, int osc_index) {
-    if (osc_index < 0 || osc_index >= 6) return;
+    if (osc_index < 0 || osc_index >= 4) return;
     
     char param_name[32];
     

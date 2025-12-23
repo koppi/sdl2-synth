@@ -10,8 +10,6 @@
 #include <SDL2/SDL.h>
 #include <SDL_ttf.h>
 #include <SDL_opengl.h>
-// #include <GL/gl.h>
-// #include <OpenGL/gl.h>
 
 // Global pointers to app state for GUI access
 static int *g_chord_prog_enabled = NULL;
@@ -199,8 +197,8 @@ void gui_draw(Synth *synth, SDL_Window *window, SDL_GLContext gl_context,
 
     // Oscillators
     if (ImGui::CollapsingHeader("Oscillators", ImGuiTreeNodeFlags_DefaultOpen)) {
-        ImGui::Columns(3, "osc_columns", true);
-        for (int i = 0; i < 6; ++i) {
+        ImGui::Columns(2, "osc_columns", true);
+        for (int i = 0; i < 4; ++i) {
             ImGui::PushID(i);
             char title[32];
             sprintf(title, "OSC %d", i + 1);
@@ -240,7 +238,7 @@ void gui_draw(Synth *synth, SDL_Window *window, SDL_GLContext gl_context,
         }
         
         // Individual oscillator randomization buttons
-        ImGui::Columns(6, "random_buttons", true);
+        ImGui::Columns(4, "random_buttons", true);
         
         if (ImGui::Button("Randomize OSC 1")) {
             synth_randomize_oscillator(synth, 0);
@@ -256,14 +254,6 @@ void gui_draw(Synth *synth, SDL_Window *window, SDL_GLContext gl_context,
         ImGui::NextColumn();
         if (ImGui::Button("Randomize OSC 4")) {
             synth_randomize_oscillator(synth, 3);
-        }
-        ImGui::NextColumn();
-        if (ImGui::Button("Randomize OSC 5")) {
-            synth_randomize_oscillator(synth, 4);
-        }
-        ImGui::NextColumn();
-        if (ImGui::Button("Randomize OSC 6")) {
-            synth_randomize_oscillator(synth, 5);
         }
 		ImGui::Columns(1, "", false);
     }

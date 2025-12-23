@@ -82,8 +82,6 @@ void mixer_init(Mixer *mixer) {
   mixer->osc_gain[1] = 0.0f;  // OSC 2 - muted
   mixer->osc_gain[2] = 0.0f;  // OSC 3 - muted
   mixer->osc_gain[3] = 0.0f;  // OSC 4 - muted
-  mixer->osc_gain[4] = 0.0f;  // OSC 5 - muted
-  mixer->osc_gain[5] = 0.0f;  // OSC 6 - muted
   
   mixer->master = 0.25f;  // Reduced from 1.0f to 0.25f
   mixer->master_pan = 0.0f; // Center pan by default

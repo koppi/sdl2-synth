@@ -23,7 +23,7 @@ typedef struct {
 } ChordProgression;
 
 typedef struct Synth {
-  Oscillator osc[6]; // osc[0-3] for main, osc[4] for bass, osc[5] for percussion
+  Oscillator osc[4]; // osc[0-3] for main oscillators
   LFO lfos[3]; // lfos[0] for pitch, lfos[1] for volume, lfos[2] for filter
   Mixer mixer;
   FX fx;

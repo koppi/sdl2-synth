@@ -8,7 +8,7 @@ typedef struct Voice {
   float note;
   float velocity;
   unsigned long long timestamp;
-  float phase_acc[6];
+  float phase_acc[4];
   AdsrEnvelope adsr;
 } Voice;
 

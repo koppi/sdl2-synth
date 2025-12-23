@@ -30,8 +30,7 @@ const CCMapping cc_map[] = {
     {15, "osc3.waveform", 0.0f, 4.0f},      // CC 15: (Undefined/Unused) → OSC 3 Waveform Select
     {16, "osc4.pitch", -24.0f, 24.0f},       // CC 16: General Purpose Controller 1 → OSC 4 Pitch Bend
     {17, "osc4.detune", -1.0f, 1.0f},        // CC 17: General Purpose Controller 2 → OSC 4 Detune
-    {18, "osc5.gain", 0.0f, 1.0f},           // CC 18: General Purpose Controller 3 → OSC 5 Gain
-    {19, "osc6.gain", 0.0f, 1.0f},           // CC 19: General Purpose Controller 4 → OSC 6 Gain
+    
     
     // OSCILLATOR PARAMETER BLOCK (CC 20-31)
     {20, "mixer.master", 0.0f, 2.0f},           // CC 20: (Undefined) → Master Volume
@@ -47,8 +46,7 @@ const CCMapping cc_map[] = {
     {30, "fx.delay.mix", 0.0f, 1.0f},            // CC 30: (Undefined) → Delay Mix
     
     // STANDARD MIDI CONTROLLERS (CC 32-63)
-    {33, "osc6.waveform", 0.0f, 4.0f},        // CC 33: LSB of Bank Select → OSC 6 Waveform
-    {34, "osc5.waveform", 0.0f, 4.0f},        // CC 34: LSB of Bank Select → OSC 5 Waveform
+    {34, "osc4.waveform", 0.0f, 4.0f},        // CC 34: LSB of Bank Select → OSC 4 Waveform
     {35, "osc4.waveform", 0.0f, 4.0f},        // CC 35: LSB of Bank Select → OSC 4 Waveform
     {36, "osc3.waveform", 0.0f, 4.0f},        // CC 36: LSB of Bank Select → OSC 3 Waveform
     {37, "osc2.waveform", 0.0f, 4.0f},        // CC 37: LSB of Bank Select → OSC 2 Waveform
@@ -61,8 +59,7 @@ const CCMapping cc_map[] = {
     {44, "fx.filter_drive", 1.0f, 10.0f},          // CC 44: LSB of Bank Select → Filter Drive
     {45, "fx.filter_resonance", 0.1f, 10.0f},        // CC 45: LSB of Bank Select → Filter Resonance
     {46, "fx.filter_mix", 0.0f, 1.0f},             // CC 46: LSB of Bank Select → Filter Mix
-    {47, "osc6.unison_voices", 1.0f, 8.0f},        // CC 47: LSB of Bank Select → OSC 6 Unison Voices
-    {48, "osc5.unison_voices", 1.0f, 8.0f},        // CC 48: LSB of Bank Select → OSC 5 Unison Voices
+    {48, "osc4.unison_voices", 1.0f, 8.0f},        // CC 48: LSB of Bank Select → OSC 4 Unison Voices
     {49, "osc4.unison_voices", 1.0f, 8.0f},        // CC 49: LSB of Bank Select → OSC 4 Unison Voices
     {50, "osc3.unison_voices", 1.0f, 8.0f},        // CC 50: LSB of Bank Select → OSC 3 Unison Voices
     {51, "osc2.unison_voices", 1.0f, 8.0f},        // CC 51: LSB of Bank Select → OSC 2 Unison Voices

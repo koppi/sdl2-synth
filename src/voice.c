@@ -45,7 +45,7 @@ void voice_render(Voice *v, const Oscillator *osc, const LFO *lfo, const float *
     float filter_mod = lfo[2].enabled ? lfo_get_modulation_value((LFO*)&lfo[2]) : 0.0f;
     
     // Process each oscillator with gain and panning
-    for (int o = 0; o < 6; ++o) {
+    for (int o = 0; o < 4; ++o) {
       float modified_note = v->note;
       
       // Apply pitch LFO (only to main oscillators 0-3)
@@ -63,7 +63,7 @@ void voice_render(Voice *v, const Oscillator *osc, const LFO *lfo, const float *
       osc_output *= osc_gains[o];
       
       // Apply oscillator panning
-      float pan = (o < 6) ? osc[o].pan : 0.0f; // All oscillators support pan
+      float pan = (o < 4) ? osc[o].pan : 0.0f; // All oscillators support pan
       float left_gain = (pan <= 0.0f) ? 1.0f : 1.0f - pan;
       float right_gain = (pan >= 0.0f) ? 1.0f : 1.0f + pan;
       
@@ -76,8 +76,8 @@ void voice_render(Voice *v, const Oscillator *osc, const LFO *lfo, const float *
     right *= v->velocity * adsr_value;
     
     // Average across oscillators and add to stereo buffer
-    stereo[n * 2 + 0] += left * (1.0f / 6.0f); // Left channel
-    stereo[n * 2 + 1] += right * (1.0f / 6.0f); // Right channel
+    stereo[n * 2 + 0] += left * (1.0f / 4.0f); // Left channel
+    stereo[n * 2 + 1] += right * (1.0f / 4.0f); // Right channel
   }
 }
 
