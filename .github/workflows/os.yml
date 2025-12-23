@@ -1,0 +1,78 @@
+name: OS
+
+on:
+  push:
+    branches: ["*"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+
+  macos:
+    runs-on: macos-15
+    name: MacOS
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install some build dependencies
+      run: |
+        brew install git sdl2 sdl2_ttf glfw3 glew
+
+    - name: Configure build
+      run: |
+        cmake --preset release
+
+    - name: Execute build
+      run: |
+        cmake --build --preset synth-release
+
+    - name: Upload binary
+      uses: actions/upload-artifact@v4
+      with:
+        if-no-files-found: error
+        name: synth-macos-15
+        path: |
+          build/release/*
+
+  windows:
+    runs-on: windows-2022
+    name: Windows
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Configure build
+      run: |
+        cmake --preset release-windows
+
+    - name: Execute build
+      run: |
+        cmake --build --preset synth-release-windows
+
+    - name: Upload binary
+      uses: actions/upload-artifact@v4
+      with:
+        if-no-files-found: error
+        name: synth-windows
+        path: |
+          build\release-windows\Release\*
+
+  linux:
+    runs-on: ubuntu-22.04
+    name: Linux
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Build project using docker
+      run: |
+        docker buildx build . -f dist/linux.Dockerfile --progress=plain --output out
+
+    - name: Upload binary
+      uses: actions/upload-artifact@v4
+      with:
+        if-no-files-found: error
+        name: synth-linux
+        path: |
+          out/*

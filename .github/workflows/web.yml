@@ -1,0 +1,55 @@
+name: Web
+
+on:
+  push:
+    branches: ["*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  pages: write
+  id-token: write
+  actions: write
+
+jobs:
+
+  build:
+    runs-on: ubuntu-22.04
+    name: Wasm
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    - name: Build using docker
+      id: build
+      run: |
+        docker buildx build . -f dist/web.Dockerfile --progress=plain --output out
+
+    - name: Fix permissions
+      run: |
+        chmod -c -R +rX "out/" | while read line; do
+          echo "::warning title=Invalid file permissions automatically fixed::$line"
+        done
+
+    - name: Upload artifacts to pages
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: out/
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+      
+    name: GitHub Pages
+    runs-on: ubuntu-latest
+
+    if: ${{ github.ref == 'refs/heads/main' && github.event.repository.fork == false }}
+    needs: build
+
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

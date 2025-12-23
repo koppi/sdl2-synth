@@ -1,0 +1,197 @@
+<!doctype HTML>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <title>sdl2-synth</title>
+    <style>
+      html {
+          width: 100%;
+          height: 100%;
+      }
+      body {
+          display: -webkit-flex;
+          display: flex;
+          -webkit-flex-direction: column;
+          flex-direction: column;
+          width: 100%;
+          height: 100%;
+          font-family: sans-serif;
+          margin: 0;
+          padding: 0;
+          overflow: hidden;
+      }
+      #canvas {
+          -webkit-flex: 1;
+          flex: 1;
+          width: 100%;
+          min-height: 10%;
+      }
+      #status {
+          background-color: hsl(60,20%,90%);
+          text-align: center;
+          height: 0;
+      }
+      #output {
+          background-color: hsla(240,10%,10%,0.0);
+          color: black;
+          border: none;
+          padding: 0 1em;
+          position: absolute;
+          right: 0; width: 1;
+          bottom: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="status">Downloading...</div>
+    
+    <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+
+    <textarea id="output" rows="8"></textarea>
+    
+    <script type='text/javascript'>
+      // Global state for MIDI management
+      var g_state = {
+          webmidi: null,
+      };
+      
+      var Module = {
+          print: (function(text) {
+              var element = document.getElementById('output');
+              if (element) element.value = ''; // clear browser cache
+              return function(text) {
+                  if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+                  console.log(text);
+                  if (element) {
+                      element.value += text + "\n";
+                      element.scrollTop = element.scrollHeight; // focus on bottom
+                  }
+              };
+          })(),
+          printErr: function(text) { console.error(text); },
+          setStatus: (function(text) {
+              var element = document.getElementById('status');
+              if (element) element.textContent = ''; // clear browser cache
+              return function(text) { element.textContent = text; };
+          })(),
+          canvas: document.getElementById('canvas'),
+          preRun: [function() {
+              Module['canvas'].addEventListener('wheel', function(e) { e.preventDefault(); }, { passive: false });
+              Module['canvas'].addEventListener('touchstart', function(e) { e.preventDefault(); }, { passive: false });
+              Module['canvas'].addEventListener('touchmove', function(e) { e.preventDefault(); }, { passive: false });
+              
+              // Initialize WebMIDI with Firefox compatibility
+              function initializeWebMIDI() {
+                  // Check if Web MIDI API is available
+                  if (!navigator.requestMIDIAccess) {
+                      console.log('WebMIDI not supported in this browser');
+                      
+                      // Firefox-specific guidance
+                      if (navigator.userAgent.includes('Firefox')) {
+                          var firefoxMessage = document.createElement('div');
+                          firefoxMessage.style.cssText = 'position: fixed; top: 10px; left: 50%; transform: translateX(-50%); background: #ff9800; color: white; padding: 10px 20px; border-radius: 5px; z-index: 1000; font-family: sans-serif;';
+                          firefoxMessage.innerHTML = 'Firefox users: Enable Web MIDI by setting dom.webmidi.enabled to true in about:config and restarting Firefox';
+                          document.body.appendChild(firefoxMessage);
+                          
+                          // Auto-hide after 10 seconds
+                          setTimeout(function() { 
+                              if (firefoxMessage.parentNode) {
+                                  firefoxMessage.parentNode.removeChild(firefoxMessage);
+                              }
+                          }, 10000);
+                      }
+                      return;
+                  }
+                  
+                  // Request MIDI access with Firefox-compatible options
+                  var midiOptions = { 
+                      sysex: false,  // Firefox has limited sysex support
+                      software: true  // Request software synths if available
+                  };
+                  
+                  // Use user gesture for better compatibility
+                  function requestMIDIAccessWithUserGesture() {
+                      navigator.requestMIDIAccess(midiOptions)
+                          .then(function(midiAccess) {
+                              console.log('WebMIDI access granted successfully');
+                              Module.midiAccess = midiAccess;
+                              
+                              // Log available devices
+                              console.log('Available MIDI inputs:', midiAccess.inputs.size);
+                              
+                              // Add success notification
+                              showNotification('MIDI devices connected successfully!', 'success');
+                          })
+                          .catch(function(error) {
+                              console.error('WebMIDI access denied:', error);
+                              
+                              // Provide specific error messaging
+                              var errorMessage = error.name ? error.name : 'Unknown error';
+                              if (errorMessage === 'SecurityError') {
+                                  showNotification('MIDI access blocked. Please allow MIDI permissions in your browser settings.', 'error');
+                              } else if (errorMessage === 'NotAllowedError') {
+                                  showNotification('MIDI access denied by user. Please allow MIDI access when prompted.', 'warning');
+                              } else if (errorMessage === 'NotSupportedError') {
+                                  showNotification('Web MIDI not supported in this browser. Try Chrome or Edge.', 'error');
+                              } else {
+                                  showNotification('MIDI initialization failed: ' + errorMessage, 'error');
+                              }
+                          });
+                  }
+                  
+                  // Try immediate access first (works in Chrome/Edge)
+                  requestMIDIAccessWithUserGesture();
+                  
+                  // For Firefox and other browsers, also try on user interaction
+                  document.addEventListener('click', function requestOnFirstClick(e) {
+                      if (!Module.midiAccess) {
+                          requestMIDIAccessWithUserGesture();
+                      }
+                      document.removeEventListener('click', requestOnFirstClick);
+                  }, { once: true });
+              }
+              
+              // Notification helper function
+              function showNotification(message, type) {
+                  var notification = document.createElement('div');
+                  var bgColor = type === 'success' ? '#4caf50' : 
+                               type === 'warning' ? '#ff9800' : 
+                               type === 'error' ? '#f44336' : '#2196f3';
+                  
+                  notification.style.cssText = 'position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: ' + bgColor + '; color: white; padding: 12px 24px; border-radius: 6px; z-index: 1001; font-family: sans-serif; font-size: 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.3); transition: opacity 0.3s;';
+                  notification.textContent = message;
+                  
+                  document.body.appendChild(notification);
+                  
+                  // Auto-hide after 5 seconds
+                  setTimeout(function() { 
+                      notification.style.opacity = '0';
+                      setTimeout(function() { 
+                          if (notification.parentNode) {
+                              notification.parentNode.removeChild(notification);
+                          }
+                      }, 300);
+                  }, 5000);
+              }
+              
+              // Initialize WebMIDI
+              initializeWebMIDI();
+          }],
+          postRun: [function() {
+              // Enhanced initialization sequence
+              setTimeout(function() {
+                  console.log('WebMIDI initialization delay completed');
+                  
+                  // Check if module loaded properly
+                  if (typeof Module !== 'undefined' && Module.midiInitialized) {
+                      console.log('Module and MIDI properly initialized');
+                  } else {
+                      console.warn('Module or MIDI initialization may be incomplete');
+                  }
+              }, 2000);
+          }]
+      };
+    </script>
+    <script async type="text/javascript" src="synth.js"></script>
+  </body>
+</html>
