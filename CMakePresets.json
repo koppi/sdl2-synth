@@ -4,7 +4,6 @@
 		{
 			"name": "common",
 			"hidden": true,
-			"generator": "Ninja",
 			"binaryDir": "build/${presetName}",
 			"cacheVariables": {
 				"CMAKE_POLICY_VERSION_MINIMUM": "3.5"
