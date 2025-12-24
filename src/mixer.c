@@ -79,9 +79,9 @@ static void calculate_coefficients(BusCompressor *comp, float attack_ms, float r
 void mixer_init(Mixer *mixer) {
   // Set oscillator gains
   mixer->osc_gain[0] = 1.0f;  // OSC 1 - full volume
-  mixer->osc_gain[1] = 0.0f;  // OSC 2 - muted
-  mixer->osc_gain[2] = 0.0f;  // OSC 3 - muted
-  mixer->osc_gain[3] = 0.0f;  // OSC 4 - muted
+  mixer->osc_gain[1] = 1.0f;  // OSC 2 - full volume
+  mixer->osc_gain[2] = 1.0f;  // OSC 3 - full volume
+  mixer->osc_gain[3] = 1.0f;  // OSC 4 - full volume
   
   mixer->master = 0.25f;  // Reduced from 1.0f to 0.25f
   mixer->master_pan = 0.0f; // Center pan by default

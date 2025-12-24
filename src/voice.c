@@ -75,9 +75,9 @@ void voice_render(Voice *v, const Oscillator *osc, const LFO *lfo, const float *
     left *= v->velocity * adsr_value;
     right *= v->velocity * adsr_value;
     
-    // Average across oscillators and add to stereo buffer
-    stereo[n * 2 + 0] += left * (1.0f / 4.0f); // Left channel
-    stereo[n * 2 + 1] += right * (1.0f / 4.0f); // Right channel
+    // Add to stereo buffer (no averaging - oscillator gains handle mixing)
+    stereo[n * 2 + 0] += left; // Left channel
+    stereo[n * 2 + 1] += right; // Right channel
   }
 }
 

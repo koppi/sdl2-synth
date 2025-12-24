@@ -26,7 +26,8 @@ const CCMapping cc_map[] = {
     {11, "osc1.pulse_width", 0.0f, 1.0f},    // CC 11: Expression → OSC 1 Pulse Width
     {12, "osc2.pitch", -24.0f, 24.0f},       // CC 12: Effect Control 1 → OSC 2 Pitch Bend
     {13, "osc2.detune", -1.0f, 1.0f},        // CC 13: Effect Control 2 → OSC 2 Detune
-    {14, "osc3.gain", 0.0f, 1.0f},           // CC 14: (Undefined/Unused) → OSC 3 Gain
+    {14, "osc2.gain", 0.0f, 1.0f},           // CC 14: (Undefined/Unused) → OSC 2 Gain
+    {15, "osc3.gain", 0.0f, 1.0f},           // CC 15: (Undefined/Unused) → OSC 3 Gain
     {15, "osc3.waveform", 0.0f, 4.0f},      // CC 15: (Undefined/Unused) → OSC 3 Waveform Select
     {16, "osc4.pitch", -24.0f, 24.0f},       // CC 16: General Purpose Controller 1 → OSC 4 Pitch Bend
     {17, "osc4.detune", -1.0f, 1.0f},        // CC 17: General Purpose Controller 2 → OSC 4 Detune
@@ -46,9 +47,10 @@ const CCMapping cc_map[] = {
     {30, "fx.delay.mix", 0.0f, 1.0f},            // CC 30: (Undefined) → Delay Mix
     
     // STANDARD MIDI CONTROLLERS (CC 32-63)
+    {33, "osc4.gain", 0.0f, 1.0f},            // CC 33: (Undefined) → OSC 4 Gain
     {34, "osc4.waveform", 0.0f, 4.0f},        // CC 34: LSB of Bank Select → OSC 4 Waveform
-    {35, "osc4.waveform", 0.0f, 4.0f},        // CC 35: LSB of Bank Select → OSC 4 Waveform
-    {36, "osc3.waveform", 0.0f, 4.0f},        // CC 36: LSB of Bank Select → OSC 3 Waveform
+    {35, "osc3.waveform", 0.0f, 4.0f},        // CC 35: LSB of Bank Select → OSC 3 Waveform
+    {36, "osc2.waveform", 0.0f, 4.0f},        // CC 36: LSB of Bank Select → OSC 2 Waveform
     {37, "osc2.waveform", 0.0f, 4.0f},        // CC 37: LSB of Bank Select → OSC 2 Waveform
     {38, "osc1.waveform", 0.0f, 4.0f},        // CC 38: LSB of Bank Select → OSC 1 Waveform
     {39, "mixer.comp.threshold", -24.0f, 0.0f},    // CC 39: LSB of Bank Select → Compressor Threshold

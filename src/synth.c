@@ -275,7 +275,7 @@ void synth_audio_callback(void *userdata, Uint8 *stream, int len) {
     memset(vbuf, 0, sizeof(float) * frames * 2);
     voice_render(&synth->voices[v], synth->osc, synth->lfos, synth->mixer.osc_gain, vbuf, frames);
     for (int i = 0; i < frames * 2; ++i)
-      out[i] += vbuf[i] * synth->voices[v].velocity;
+      out[i] += vbuf[i];
   }
   free(vbuf);
 
@@ -324,8 +324,16 @@ void synth_handle_cc(Synth *synth, int cc, int value) {
 void synth_set_param(Synth *synth, const char *param, float value) {
   if (strncmp(param, "osc", 3) == 0) {
     int i = param[3] - '1';
-    if (i >= 0 && i < 4)
-      osc_set_param(&synth->osc[i], param + 5, value);
+    if (i >= 0 && i < 4) {
+      // Handle gain parameter specially - route to mixer instead of oscillator
+      if (strncmp(param + 5, "gain", 4) == 0) {
+        // Set mixer gain for this oscillator
+        synth->mixer.osc_gain[i] = value;
+      } else {
+        // Set other oscillator parameters normally
+        osc_set_param(&synth->osc[i], param + 5, value);
+      }
+    }
   } else if (strncmp(param, "fx.", 3) == 0) {
     fx_set_param(&synth->fx, param + 3, value);
   } else if (strncmp(param, "mixer.", 6) == 0) {

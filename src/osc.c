@@ -40,6 +40,7 @@ void osc_set_param(Oscillator *osc, const char *param, float value) {
 
 float osc_process(Oscillator *osc, float note, float *phase_acc) {
   float output = 0.0f;
+  float unison_phase_acc = 0.0f; // Local phase accumulator for unison calculation
   
   // Process unison voices
   for (int voice = 0; voice < osc->unison_voices; ++voice) {
@@ -47,16 +48,25 @@ float osc_process(Oscillator *osc, float note, float *phase_acc) {
     float voice_detune = 0.0f;
     if (osc->unison_voices > 1 && osc->unison_detune > 0.0f) {
       // Spread voices symmetrically around center frequency
-      float spread = (float)(voice - (osc->unison_voices - 1) * 0.5f) / (osc->unison_voices - 1);
+      float spread = (float)(voice - (osc->unison_voices - 1) * 0.5f) / (float)(osc->unison_voices - 1);
       voice_detune = spread * osc->unison_detune;
     }
     
     float freq = 440.0f * powf(2.0f, (note + osc->pitch + osc->detune + voice_detune - 69.0f) / 12.0f);
-    *phase_acc += freq / osc->samplerate;
-    if (*phase_acc >= 1.0f)
-      *phase_acc -= 1.0f;
+    
+    // Update the main phase accumulator for the first voice, use local for others
+    if (voice == 0) {
+      *phase_acc += freq / osc->samplerate;
+      if (*phase_acc >= 1.0f)
+        *phase_acc -= 1.0f;
+      unison_phase_acc = *phase_acc;
+    } else {
+      unison_phase_acc += freq / osc->samplerate;
+      if (unison_phase_acc >= 1.0f)
+        unison_phase_acc -= 1.0f;
+    }
       
-    float p = *phase_acc + osc->phase;
+    float p = unison_phase_acc + osc->phase;
     if (p >= 1.0f)
       p -= 1.0f;
       
