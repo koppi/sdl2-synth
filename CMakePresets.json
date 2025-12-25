@@ -60,33 +60,34 @@
 	],
 	"buildPresets": [
 		{
-			"name": "synth-debug",
+			"name": "debug",
 			"displayName": "Build Debug",
 			"configurePreset": "debug",
-			"configuration": "Debug"
+			"configuration": "Debug",
+			"targets": ["synth"]
 		},
 		{
-			"name": "synth-release",
+			"name": "release",
 			"displayName": "Build Release",
 			"configurePreset": "release",
 			"configuration": "Release",
 			"targets": ["synth"]
 		},
 		{
-			"name": "synth-debug-windows",
+			"name": "debug-windows",
 			"displayName": "Build Debug Windows",
 			"configurePreset": "debug-windows",
 			"configuration": "Debug"
 		},
 		{
-			"name": "synth-release-windows",
+			"name": "release-windows",
 			"displayName": "Build Release Windows",
 			"configurePreset": "release-windows",
 			"configuration": "Release",
 			"targets": ["synth"]
 		},
 		{
-			"name": "synth-emscripten",
+			"name": "emscripten",
 			"displayName": "Emscripten Release",
 			"configurePreset": "emscripten",
 			"configuration": "Release",
