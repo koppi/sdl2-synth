@@ -25,7 +25,7 @@ A modular synthesizer application written in C, using SDL2 for graphics and audi
 sudo apt-get install git cmake ninja libsdl2-dev libsdl2-ttf-dev
 git clone https://github.com/koppi/sdl2-synth && cd sdl2-synth
 cmake --preset release
-cmake --build --preset synth-release && build/release/synth
+cmake --build --preset release && build/release/synth
 ```
 
 ### macOS
