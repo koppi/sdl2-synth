@@ -178,8 +178,7 @@ if (WIN32)
   # Post-build step to copy DLL files to executable directory
   add_custom_command(TARGET synth POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E echo "Finding and copying DLL files to executable directory..."
-    COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:synth>
-    COMMAND powershell -Command "Get-ChildItem -Path '$<TARGET_FILE_DIR:synth>' -Filter '*.dll' -Recurse | ForEach-Object { Copy-Item -Path $_.FullName -Destination '$<TARGET_FILE_DIR:synth>' -Force -Verbose }"
+    COMMAND powershell -Command "Get-ChildItem -Path '${CMAKE_BINARY_DIR}' -Filter '*.dll' -Recurse | ForEach-Object { Copy-Item -Path $_.FullName -Destination '$<TARGET_FILE_DIR:synth>' -Force }"
     COMMENT "Copying all DLL files to executable directory"
   )
 else()
