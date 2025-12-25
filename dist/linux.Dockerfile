@@ -9,7 +9,7 @@ WORKDIR /src
 COPY . .
 
 RUN cmake --preset release
-RUN cmake --build --parallel $(($(nproc) + 1)) --preset synth-release
+RUN cmake --build --parallel $(($(nproc) + 1)) --preset release
 
 FROM scratch
 COPY --from=0 [ \

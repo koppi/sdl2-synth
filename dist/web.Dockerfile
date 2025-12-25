@@ -13,7 +13,7 @@ COPY . .
 
 RUN cmake --version
 RUN cmake --preset emscripten
-RUN cmake --build --preset synth-emscripten -j $(($(nproc) + 1))
+RUN cmake --build --preset emscripten -j $(($(nproc) + 1))
 
 FROM scratch
 COPY --from=0 [ \
