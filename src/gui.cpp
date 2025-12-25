@@ -201,7 +201,7 @@ void gui_draw(Synth *synth, SDL_Window *window, SDL_GLContext gl_context,
         for (int i = 0; i < 4; ++i) {
             ImGui::PushID(i);
             char title[32];
-            sprintf(title, "OSC %d", i + 1);
+            snprintf(title, sizeof(title), "OSC %d", i + 1);
 
             ImGui::BeginChild(title, ImVec2(0, 200), true, 0);
             ImGui::Text("%s", title);
