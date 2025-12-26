@@ -1,5 +1,7 @@
 A modular synthesizer application written in C, using SDL2 for graphics and audio, and supporting MIDI input via libremidi.
 
+Live demo at: https://github.com/koppi/sdl2-synth
+
 ## Features
 
 - **4-oscillator synth**: Each with independent waveform, pitch, detune, gain, phase, pulse width, and unison controls
