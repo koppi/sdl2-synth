@@ -1,5 +1,7 @@
 A modular synthesizer application written in C, using SDL2 for graphics and audio, and supporting MIDI input via libremidi.
 
+![Tech stack of sdl2-synth](tech-stack.png)
+
 Live demo at: https://koppi.github.io/sdl2-synth
 
 ## Features
