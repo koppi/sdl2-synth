@@ -6,6 +6,9 @@ project(synth LANGUAGES C CXX VERSION 0.0.1)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
+# Speed up build for testing
+set(FETCHCONTENT_QUIET TRUE)
+
 # Increase WASM memory allocation for safety
 if(EMSCRIPTEN)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s ALLOW_MEMORY_GROWTH=1 -s INITIAL_MEMORY=512MB")
@@ -174,13 +177,7 @@ if (WIN32)
     POST_EXCLUDE_REGEXES ".*system32/.*\\.dll"
     DIRECTORIES $<TARGET_FILE_DIR:synth>
   )
-  
-  # Post-build step to copy DLL files to executable directory
-  add_custom_command(TARGET synth POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E echo "Finding and copying DLL files to executable directory..."
-    COMMAND powershell -Command "Get-ChildItem -Path '${CMAKE_BINARY_DIR}' -Filter '*.dll' -Recurse | ForEach-Object { Copy-Item -Path $_.FullName -Destination '$<TARGET_FILE_DIR:synth>' -Force }"
-    COMMENT "Copying all DLL files to executable directory"
-  )
+
 else()
   if(NOT CMAKE_SYSTEM_NAME MATCHES "Emscripten")
     install(TARGETS synth
@@ -190,5 +187,20 @@ else()
       LIBRARY DESTINATION ./lib
       FRAMEWORK DESTINATION ./lib
     )
-  endif()
+endif()
+endif()
+
+# Add post-build target to copy all DLLs from _deps recursively
+if(WIN32)
+  add_custom_target(copy_deps_dlls ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_BINARY_DIR}/_deps
+    ${CMAKE_BINARY_DIR}
+    COMMAND ${CMAKE_COMMAND} -E remove
+    ${CMAKE_BINARY_DIR}/*.a
+    ${CMAKE_BINARY_DIR}/*.lib
+    ${CMAKE_BINARY_DIR}/*.exp
+    COMMENT "Copying all DLLs from _deps to binary directory"
+  )
+  add_dependencies(copy_deps_dlls synth)
 endif()
