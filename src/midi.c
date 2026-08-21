@@ -554,7 +554,81 @@ void midi_shutdown(Midi *midi) {
   midi->device_count = 0;
 }
 
+void midi_arm_learn(Midi *midi, const char *label, void *value, int is_int, float min, float max) {
+  midi->learn_armed_value = value;
+  midi->learn_armed_is_int = is_int;
+  midi->learn_armed_min = min;
+  midi->learn_armed_max = max;
+  if (label) {
+    strncpy(midi->learn_armed_label, label, sizeof(midi->learn_armed_label) - 1);
+    midi->learn_armed_label[sizeof(midi->learn_armed_label) - 1] = '\0';
+  } else {
+    midi->learn_armed_label[0] = '\0';
+  }
+}
+
+void midi_clear_learned(Midi *midi) {
+  midi->learned_count = 0;
+  midi->learn_armed_value = NULL;
+}
+
+int midi_is_armed(const Midi *midi, const void *value) {
+  return midi->learn_armed_value == value && value != NULL;
+}
+
+const MidiLearnedMapping *midi_find_mapping(const Midi *midi, const void *value) {
+  for (int i = 0; i < midi->learned_count; ++i) {
+    if (midi->learned[i].value == value) {
+      return &midi->learned[i];
+    }
+  }
+  return NULL;
+}
+
 void midi_map_cc_to_param(struct Synth *synth, int cc, int value) {
+  Midi *midi = &synth->midi;
+
+  if (midi->learn_mode) {
+    // While learning, capture the armed parameter instead of applying it.
+    if (midi->learn_armed_value) {
+      int idx = -1;
+      for (int i = 0; i < midi->learned_count; ++i) {
+        if (midi->learned[i].value == midi->learn_armed_value || midi->learned[i].cc == cc) {
+          idx = i;
+          break;
+        }
+      }
+      if (idx < 0 && midi->learned_count < MAX_LEARNED_MIDI_MAPPINGS) {
+        idx = midi->learned_count++;
+      }
+      if (idx >= 0) {
+        midi->learned[idx].cc = cc;
+        midi->learned[idx].is_int = midi->learn_armed_is_int;
+        midi->learned[idx].value = midi->learn_armed_value;
+        midi->learned[idx].min = midi->learn_armed_min;
+        midi->learned[idx].max = midi->learn_armed_max;
+        strncpy(midi->learned[idx].label, midi->learn_armed_label, sizeof(midi->learned[idx].label) - 1);
+        midi->learned[idx].label[sizeof(midi->learned[idx].label) - 1] = '\0';
+      }
+      midi->learn_armed_value = NULL;
+    }
+    return;
+  }
+
+  // Normal mode: learned mappings (created via MIDI Learn) take priority
+  // over the built-in defaults below.
+  for (int i = 0; i < midi->learned_count; ++i) {
+    if (midi->learned[i].cc == cc) {
+      float norm = value / 127.0f;
+      float mapped = midi->learned[i].min + (midi->learned[i].max - midi->learned[i].min) * norm;
+      if (midi->learned[i].is_int)
+        *(int *)midi->learned[i].value = (int)(mapped + (mapped >= 0.0f ? 0.5f : -0.5f));
+      else
+        *(float *)midi->learned[i].value = mapped;
+      return;
+    }
+  }
+
   for (size_t i = 0; i < CC_MAP_SIZE; ++i) {
     if (cc_map[i].cc == cc) {
       float norm = value / 127.0f;
