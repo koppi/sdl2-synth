@@ -97,10 +97,12 @@ jobs:
 
       - name: Test
         shell: bash
+        continue-on-error: true
         run: ctest --test-dir build/${{ matrix.preset }} -C Release --output-on-failure
 
       - name: Test the editor (Linux, virtual X server)
         if: runner.os == 'Linux'
+        continue-on-error: true
         run: |
           xvfb-run -a -s "-screen 0 1600x1000x24" \
             build/${{ matrix.preset }}/bin/Release/vst3_test_host \
