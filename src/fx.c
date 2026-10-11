@@ -50,13 +50,39 @@ static float allpass_process(Allpass *a, float inp) {
   return out;
 }
 
-typedef struct {
+struct ReverbState {
   Comb combL[REVERB_COMBS], combR[REVERB_COMBS];
   Allpass allpassL[REVERB_ALLPASS], allpassR[REVERB_ALLPASS];
-  int initialized;
-} ReverbState;
+};
 
-static ReverbState reverb_state = {0};
+static void reverb_free(struct ReverbState *r) {
+  if (!r)
+    return;
+  for (int i = 0; i < REVERB_COMBS; ++i) {
+    free(r->combL[i].buf);
+    free(r->combR[i].buf);
+  }
+  for (int i = 0; i < REVERB_ALLPASS; ++i) {
+    free(r->allpassL[i].buf);
+    free(r->allpassR[i].buf);
+  }
+  free(r);
+}
+
+static void reverb_clear(struct ReverbState *r) {
+  if (!r)
+    return;
+  for (int i = 0; i < REVERB_COMBS; ++i) {
+    memset(r->combL[i].buf, 0, r->combL[i].size * sizeof(float));
+    memset(r->combR[i].buf, 0, r->combR[i].size * sizeof(float));
+    r->combL[i].pos = r->combR[i].pos = 0;
+  }
+  for (int i = 0; i < REVERB_ALLPASS; ++i) {
+    memset(r->allpassL[i].buf, 0, r->allpassL[i].size * sizeof(float));
+    memset(r->allpassR[i].buf, 0, r->allpassR[i].size * sizeof(float));
+    r->allpassL[i].pos = r->allpassR[i].pos = 0;
+  }
+}
 
 void fx_init(FX *fx, int samplerate) {
   fx->samplerate = samplerate;
@@ -75,6 +101,7 @@ void fx_init(FX *fx, int samplerate) {
   fx->flanger_bufsize = (int)(samplerate * 0.05f);
   fx->flanger_buffer = calloc(fx->flanger_bufsize * 2, sizeof(float));
   fx->flanger_pos = 0;
+  fx->flanger_phase = 0.0f;
   
   // Initialize multi-tap delay
   fx->bpm = 120.0f;
@@ -100,10 +127,13 @@ void fx_init(FX *fx, int samplerate) {
   fx->filter_resonance = 1.0f; // Q = 1.0 default
   fx->filter_drive = 1.0f;     // No drive default
   fx->filter_mix = 1.0f;        // 100% wet default
-  fx->filter_oversampling = 2; // 2x oversampling default
+  fx->filter_oversampling = 1; // Index 1 = 2x oversampling default
   analog_filter_init(&fx->filter, samplerate);
+  analog_filter_init(&fx->filter_r, samplerate);
 
-  if (!reverb_state.initialized) {
+  fx->reverb = calloc(1, sizeof(struct ReverbState));
+  if (fx->reverb) {
+    struct ReverbState *r = fx->reverb;
     int comb_delays[REVERB_COMBS] = {
         (int)(0.0297f * samplerate), (int)(0.0371f * samplerate),
         (int)(0.0411f * samplerate), (int)(0.0437f * samplerate)};
@@ -112,16 +142,13 @@ void fx_init(FX *fx, int samplerate) {
     float comb_feedback = 0.805f;
     float allpass_feedback = 0.7f;
     for (int i = 0; i < REVERB_COMBS; ++i) {
-      comb_init(&reverb_state.combL[i], comb_delays[i], comb_feedback);
-      comb_init(&reverb_state.combR[i], comb_delays[i] + 23, comb_feedback);
+      comb_init(&r->combL[i], comb_delays[i], comb_feedback);
+      comb_init(&r->combR[i], comb_delays[i] + 23, comb_feedback);
     }
     for (int i = 0; i < REVERB_ALLPASS; ++i) {
-      allpass_init(&reverb_state.allpassL[i], allpass_delays[i],
-                   allpass_feedback);
-      allpass_init(&reverb_state.allpassR[i], allpass_delays[i] + 13,
-                   allpass_feedback);
+      allpass_init(&r->allpassL[i], allpass_delays[i], allpass_feedback);
+      allpass_init(&r->allpassR[i], allpass_delays[i] + 13, allpass_feedback);
     }
-    reverb_state.initialized = 1;
   }
 }
 
@@ -179,41 +206,55 @@ void fx_set_param(FX *fx, const char *param, float value) {
   }
 }
 
+// Upper bound on frames handled in one pass so the filter's scratch buffers can
+// live on the stack (fx_process never allocates).
+#define FX_BLOCK_FRAMES 256
+
+static void fx_process_block(FX *fx, float *stereo, int frames);
+
 void fx_process(FX *fx, float *stereo, int frames) {
+  while (frames > 0) {
+    int n = frames > FX_BLOCK_FRAMES ? FX_BLOCK_FRAMES : frames;
+    fx_process_block(fx, stereo, n);
+    stereo += n * 2;
+    frames -= n;
+  }
+}
+
+static void fx_process_block(FX *fx, float *stereo, int frames) {
   // Apply analog filter first if enabled
   if (fx->filter_enabled) {
-    // Update filter parameters
-    analog_filter_set_param(&fx->filter, "cutoff", fx->filter_cutoff);
-    analog_filter_set_param(&fx->filter, "resonance", fx->filter_resonance);
-    analog_filter_set_param(&fx->filter, "drive", fx->filter_drive);
-    analog_filter_set_param(&fx->filter, "mix", fx->filter_mix);
-    analog_filter_set_param(&fx->filter, "oversampling", fx->filter_oversampling);
-    
-    // Process each channel separately
+    // Both channels share the user-facing settings but keep separate state.
+    fx->filter_r.type = fx->filter.type;
+    AnalogFilter *filters[2] = {&fx->filter, &fx->filter_r};
+    // The oversampling parameter is an index into {1x, 2x, 4x, 8x}.
+    int oversampling = 1 << (fx->filter_oversampling < 0 ? 0 : (fx->filter_oversampling > 3 ? 3 : fx->filter_oversampling));
+
     for (int ch = 0; ch < 2; ++ch) {
-      // Extract channel
-      float *channel = malloc(frames * sizeof(float));
+      AnalogFilter *f = filters[ch];
+      analog_filter_set_param(f, "cutoff", fx->filter_cutoff);
+      analog_filter_set_param(f, "resonance", fx->filter_resonance);
+      analog_filter_set_param(f, "drive", fx->filter_drive);
+      analog_filter_set_param(f, "mix", fx->filter_mix);
+      analog_filter_set_param(f, "oversampling", (float)oversampling);
+
+      float channel[FX_BLOCK_FRAMES];
+      float filtered[FX_BLOCK_FRAMES];
       for (int i = 0; i < frames; i++) {
         channel[i] = stereo[i * 2 + ch];
       }
-      
-      // Process through analog filter
-      float *filtered = malloc(frames * sizeof(float));
-      analog_filter_process(&fx->filter, channel, filtered, frames);
-      
-      // Write back to stereo buffer
+      analog_filter_process(f, channel, filtered, frames);
       for (int i = 0; i < frames; i++) {
         stereo[i * 2 + ch] = filtered[i];
       }
-      
-      free(channel);
-      free(filtered);
     }
   }
   
   for (int n = 0; n < frames; ++n) {
-    float phase =
-        fastsin(2.0f * 3.14159265f * fx->flanger_rate * n / fx->samplerate);
+    fx->flanger_phase += fx->flanger_rate / fx->samplerate;
+    if (fx->flanger_phase >= 1.0f)
+      fx->flanger_phase -= 1.0f;
+    float phase = fastsin(2.0f * 3.14159265f * fx->flanger_phase);
     int delay_samp = (int)(fx->flanger_depth * (fx->flanger_bufsize - 1) *
                            (0.5f + 0.5f * phase));
     int pos = (fx->flanger_pos + fx->flanger_bufsize - delay_samp) %
@@ -286,13 +327,16 @@ void fx_process(FX *fx, float *stereo, int frames) {
     float reverb_in = (inL + inR) * 0.5f * fx->reverb_size;
 
     float outL = 0, outR = 0;
-    for (int i = 0; i < REVERB_COMBS; ++i) {
-      outL += comb_process(&reverb_state.combL[i], reverb_in);
-      outR += comb_process(&reverb_state.combR[i], reverb_in);
-    }
-    for (int i = 0; i < REVERB_ALLPASS; ++i) {
-      outL = allpass_process(&reverb_state.allpassL[i], outL);
-      outR = allpass_process(&reverb_state.allpassR[i], outR);
+    struct ReverbState *r = fx->reverb;
+    if (r) {
+      for (int i = 0; i < REVERB_COMBS; ++i) {
+        outL += comb_process(&r->combL[i], reverb_in);
+        outR += comb_process(&r->combR[i], reverb_in);
+      }
+      for (int i = 0; i < REVERB_ALLPASS; ++i) {
+        outL = allpass_process(&r->allpassL[i], outL);
+        outR = allpass_process(&r->allpassR[i], outR);
+      }
     }
     stereo[n * 2 + 0] = inL * (1.0f - fx->reverb_mix) + outL * fx->reverb_mix;
     stereo[n * 2 + 1] = inR * (1.0f - fx->reverb_mix) + outR * fx->reverb_mix;
@@ -301,6 +345,24 @@ void fx_process(FX *fx, float *stereo, int frames) {
 
 void fx_set_bpm(FX *fx, float bpm) {
   fx->bpm = bpm;
+}
+
+void fx_reset(FX *fx) {
+  if (fx->delay_buffer)
+    memset(fx->delay_buffer, 0, (size_t)fx->delay_bufsize * 2 * sizeof(float));
+  if (fx->flanger_buffer)
+    memset(fx->flanger_buffer, 0, (size_t)fx->flanger_bufsize * 2 * sizeof(float));
+  fx->delay_pos = 0;
+  fx->flanger_pos = 0;
+  fx->flanger_phase = 0.0f;
+  fx->multitap_delay_pos = 0;
+  reverb_clear(fx->reverb);
+
+  AnalogFilter *filters[2] = {&fx->filter, &fx->filter_r};
+  for (int i = 0; i < 2; ++i) {
+    filters[i]->x1 = filters[i]->x2 = filters[i]->y1 = filters[i]->y2 = 0.0f;
+    filters[i]->sat_state = 0.0f;
+  }
 }
 
 void fx_cleanup(FX *fx) {
@@ -312,6 +374,9 @@ void fx_cleanup(FX *fx) {
     free(fx->flanger_buffer);
     fx->flanger_buffer = NULL;
   }
-  // Clean up analog filter
+  reverb_free(fx->reverb);
+  fx->reverb = NULL;
+  // Clean up analog filters
   analog_filter_cleanup(&fx->filter);
+  analog_filter_cleanup(&fx->filter_r);
 }

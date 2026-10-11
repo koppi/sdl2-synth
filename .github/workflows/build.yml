@@ -1,0 +1,198 @@
+# Reusable workflow: builds the standalone app and the VST3 plug-in on Linux,
+# macOS and Windows, runs the VST3 validator and the plug-in smoke test, and
+# uploads one package per platform and product as workflow artifacts.
+#
+# Called by os.yml (every push / pull request) and release.yml (version tags).
+
+name: Build and package
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: Numeric version (x.y.z) compiled into the plug-in
+        type: string
+        default: "0.0.0"
+      label:
+        description: Text used in the package file names (a tag such as v1.2.3, or "dev")
+        type: string
+        default: dev
+      retention-days:
+        description: How long the uploaded packages are kept
+        type: number
+        default: 14
+    secrets:
+      # Optional. When all of them are set the macOS binaries are signed with
+      # a Developer ID and the plug-in is notarized; otherwise they are only
+      # ad-hoc signed.
+      APPLE_CERTIFICATE_P12:
+        required: false
+      APPLE_CERTIFICATE_PASSWORD:
+        required: false
+      APPLE_SIGNING_IDENTITY:
+        required: false
+      APPLE_ID:
+        required: false
+      APPLE_TEAM_ID:
+        required: false
+      APPLE_APP_PASSWORD:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux x86_64
+            os: ubuntu-22.04 # oldest glibc we can reasonably target
+            platform: linux-x86_64
+            preset: vst3
+          - name: macOS universal
+            os: macos-14
+            platform: macos-universal
+            preset: vst3-macos-universal
+          - name: Windows x86_64
+            os: windows-2022
+            platform: windows-x86_64
+            preset: vst3-windows
+    env:
+      HAVE_APPLE_SIGNING: ${{ secrets.APPLE_CERTIFICATE_P12 != '' && secrets.APPLE_SIGNING_IDENTITY != '' && secrets.APPLE_ID != '' && secrets.APPLE_TEAM_ID != '' && secrets.APPLE_APP_PASSWORD != '' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            g++-12 gcc-12 ninja-build xvfb \
+            libx11-dev libxext-dev libxcursor-dev libxi-dev libxrandr-dev libxss-dev libxfixes-dev \
+            libxkbcommon-dev libwayland-dev wayland-protocols libgl1-mesa-dev libasound2-dev \
+            libpulse-dev libudev-dev libdbus-1-dev
+          echo "CC=gcc-12" >> "$GITHUB_ENV"
+          echo "CXX=g++-12" >> "$GITHUB_ENV"
+
+      - name: Configure
+        run: cmake --preset ${{ matrix.preset }} -DSYNTH_VERSION=${{ inputs.version }}
+
+      - name: Build
+        # The SDK runs its VST3 validator on the plug-in as a post-build step,
+        # so a plug-in that fails validation fails the build.
+        run: cmake --build --preset ${{ matrix.preset }} --parallel
+
+      - name: Test
+        run: ctest --test-dir build/${{ matrix.preset }} -C Release --output-on-failure
+
+      - name: Test the editor (Linux, virtual X server)
+        if: runner.os == 'Linux'
+        run: |
+          xvfb-run -a -s "-screen 0 1600x1000x24" \
+            build/${{ matrix.preset }}/bin/Release/vst3_test_host \
+            build/${{ matrix.preset }}/VST3/Release/sdl2-synth.vst3 --editor
+
+      # ---------------------------------------------------------------- packaging
+      - name: Stage files
+        shell: bash
+        env:
+          BUILD: build/${{ matrix.preset }}
+          LABEL: ${{ inputs.label }}
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          set -euo pipefail
+          case "$RUNNER_OS" in
+            Linux)   notes=packaging/INSTALL-vst3-linux.txt;   exe=sdl2-synth ;;
+            macOS)   notes=packaging/INSTALL-vst3-macos.txt;   exe=sdl2-synth ;;
+            Windows) notes=packaging/INSTALL-vst3-windows.txt; exe=sdl2-synth.exe ;;
+          esac
+
+          VST3_PKG="sdl2-synth-vst3-$LABEL-$PLATFORM"
+          APP_PKG="sdl2-synth-standalone-$LABEL-$PLATFORM"
+          echo "VST3_PKG=$VST3_PKG" >> "$GITHUB_ENV"
+          echo "APP_PKG=$APP_PKG"   >> "$GITHUB_ENV"
+          mkdir -p "stage/$VST3_PKG" "stage/$APP_PKG" out
+
+          # VST3 plug-in
+          cp -R "$BUILD/VST3/Release/sdl2-synth.vst3" "stage/$VST3_PKG/"
+          cp "$notes" "stage/$VST3_PKG/INSTALL.txt"
+          cp LICENSE THIRD-PARTY-NOTICES.md "stage/$VST3_PKG/"
+
+          # Standalone application
+          cmake --install "$BUILD" --config Release --prefix "$PWD/stage/install"
+          if [ "$RUNNER_OS" = Windows ]; then
+            cp stage/install/bin/synth.exe "stage/$APP_PKG/$exe"
+          else
+            cp stage/install/bin/synth "stage/$APP_PKG/$exe"
+          fi
+          cp packaging/INSTALL-standalone.txt "stage/$APP_PKG/INSTALL.txt"
+          cp LICENSE THIRD-PARTY-NOTICES.md "stage/$APP_PKG/"
+
+      - name: Sign for macOS (Developer ID, notarized)
+        if: runner.os == 'macOS' && env.HAVE_APPLE_SIGNING == 'true'
+        shell: bash
+        env:
+          CERT_P12: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          CERT_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN="$RUNNER_TEMP/release.keychain-db"
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+          echo "$CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/cert.p12" -P "$CERT_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
+
+          codesign --force --options runtime --timestamp --sign "$IDENTITY" "stage/$APP_PKG/sdl2-synth"
+          codesign --force --deep --options runtime --timestamp --sign "$IDENTITY" "stage/$VST3_PKG/sdl2-synth.vst3"
+          codesign --verify --deep --strict --verbose=2 "stage/$VST3_PKG/sdl2-synth.vst3"
+
+          ditto -c -k --keepParent "stage/$VST3_PKG/sdl2-synth.vst3" "$RUNNER_TEMP/notarize.zip"
+          xcrun notarytool submit "$RUNNER_TEMP/notarize.zip" \
+            --apple-id "$APPLE_ID" --team-id "$TEAM_ID" --password "$APP_PASSWORD" --wait
+          xcrun stapler staple "stage/$VST3_PKG/sdl2-synth.vst3"
+
+      - name: Sign for macOS (ad-hoc)
+        if: runner.os == 'macOS' && env.HAVE_APPLE_SIGNING != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          codesign --force --sign - "stage/$APP_PKG/sdl2-synth"
+          codesign --force --deep --sign - "stage/$VST3_PKG/sdl2-synth.vst3"
+          codesign --verify --deep --strict "stage/$VST3_PKG/sdl2-synth.vst3"
+
+      - name: Create archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd stage
+          for pkg in "$VST3_PKG" "$APP_PKG"; do
+            case "$RUNNER_OS" in
+              Linux)   tar -czf "../out/$pkg.tar.gz" "$pkg" ;;
+              macOS)   ditto -c -k --keepParent "$pkg" "../out/$pkg.zip" ;;
+              Windows) 7z a -tzip "../out/$pkg.zip" "$pkg" > /dev/null ;;
+            esac
+          done
+          ls -l ../out
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ matrix.platform }}
+          path: out/*
+          if-no-files-found: error
+          retention-days: ${{ inputs.retention-days }}

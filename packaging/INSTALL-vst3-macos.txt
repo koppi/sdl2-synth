@@ -1,0 +1,16 @@
+SDL2 Synth - VST3 plug-in (macOS, Apple Silicon and Intel)
+==========================================================
+
+Copy the "sdl2-synth.vst3" bundle into one of the VST3 folders:
+
+  per user:    ~/Library/Audio/Plug-Ins/VST3/
+  system-wide: /Library/Audio/Plug-Ins/VST3/
+
+Then rescan plug-ins in your host. The plug-in appears as an instrument called
+"SDL2 Synth". Requires macOS 11 or newer.
+
+If the plug-in was not signed with an Apple Developer ID, macOS may refuse to
+load it because it came from the internet ("cannot be opened because the
+developer cannot be verified"). Remove the quarantine flag once after copying:
+
+  xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/VST3/sdl2-synth.vst3

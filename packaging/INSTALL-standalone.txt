@@ -1,0 +1,12 @@
+SDL2 Synth - standalone application
+===================================
+
+Run the "sdl2-synth" program (sdl2-synth.exe on Windows). It is a single
+self-contained executable; it opens an audio output, connects to every MIDI
+input it finds and plays with the computer keyboard (see the project README).
+
+The program stores its settings in "default_config.json" and "imgui.ini" in
+the folder it is started from.
+
+macOS: the binary is not notarized. If macOS refuses to start it, remove the
+quarantine flag once:  xattr -d com.apple.quarantine ./sdl2-synth

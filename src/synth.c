@@ -1,6 +1,5 @@
 #include "synth.h"
 #include "midi.h"
-#include "oscilloscope.h"
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -10,8 +9,6 @@
 static int order_compare(const void *a, const void *b) {
   return (*(int *)a) - (*(int *)b);
 }
-
-static int arp_last_played_note = -1;
 
 // Define a simple startup chord progression
 static MelodyNote startup_melody[] = {
@@ -52,9 +49,9 @@ static ActiveMelodyNote active_melody_notes[MAX_MELODY_POLYPHONY];
 void synth_update_arpeggiator(Synth *synth, int frames) {
     Arpeggiator *arp = &synth->arp;
     if (!arp->enabled || arp->held_count == 0) {
-        if (arp_last_played_note != -1) {
-            synth_note_off(synth, arp_last_played_note);
-            arp_last_played_note = -1;
+        if (synth->arp_last_played_note != -1) {
+            synth_note_off(synth, synth->arp_last_played_note);
+            synth->arp_last_played_note = -1;
         }
         return;
     }
@@ -146,17 +143,25 @@ void synth_update_startup_melody(Synth *synth, int frames) {
     }
 }
 
-int synth_init(Synth *synth, int samplerate, int buffer_size, int voices) {
+int synth_core_init(Synth *synth, int samplerate, int voices) {
   memset(synth, 0, sizeof(Synth));
+  if (voices < 1)
+    voices = 1;
+  if (voices > SYNTH_MAX_VOICES)
+    voices = SYNTH_MAX_VOICES;
   synth->max_voices = voices;
-  synth->sample_rate = samplerate;
-  
-  srand(time(NULL)); // Seed random number generator
+  synth->sample_rate = (float)samplerate;
+  synth->arp_last_played_note = -1;
+  synth->midi.last_cc = -1;
 
   mixer_init(&synth->mixer);
   mixer_set_sample_rate(&synth->mixer, samplerate);
   synth_set_param(synth, "mixer.master", 1.0f);
   fx_init(&synth->fx, samplerate);
+  if (!synth->fx.delay_buffer || !synth->fx.flanger_buffer || !synth->fx.reverb) {
+    fx_cleanup(&synth->fx);
+    return 0;
+  }
   synth_set_param(synth, "fx.delay.mix", 0.0f); // Set delay mix to 0.0
   synth_set_param(synth, "fx.reverb.mix", 0.05f); // Enable reverb with a mix of 0.05
   ring_mod_init(&synth->ring_mod, samplerate);
@@ -165,14 +170,9 @@ int synth_init(Synth *synth, int samplerate, int buffer_size, int voices) {
   synth_set_param(synth, "ring_mod.mix", 0.0f);         // Disabled by default
   synth_set_param(synth, "ring_mod.enabled", 0);        // Disabled by default
   arpeggiator_init(&synth->arp);
-  
-
-  synth->arp.enabled = 1; // Will be enabled when progression starts
   synth->arp.tempo = 120.0f;
   synth->arp.mode = ARP_UP;
-  
-  midi_init(&synth->midi, synth);
-  
+
   // Initialize LFOs
   for (int i = 0; i < 3; ++i) {
     lfo_init(&synth->lfos[i], samplerate);
@@ -188,123 +188,104 @@ int synth_init(Synth *synth, int samplerate, int buffer_size, int voices) {
   synth_set_param(synth, "lfo1.sync", 1.0f); // LFO_SYNC_RETRIGGER
   synth_set_param(synth, "lfo2.sync", 1.0f); // LFO_SYNC_RETRIGGER
   synth_set_param(synth, "lfo3.sync", 1.0f); // LFO_SYNC_RETRIGGER
-  
-  // synth_play_startup_melody(synth); // Start the melody at startup
-  
-  char param_name[16];
-  for (int i = 0; i < 4; ++i) { // Loop for all 4 oscillators
+
+  // Main oscillators: sine waves at unison pitch.
+  for (int i = 0; i < 4; ++i) {
     osc_init(&synth->osc[i], samplerate);
-
-    // Default parameters for main oscillators (0-3)
-    if (i < 4) {
-      // Randomize pitch (-0.5 to 0.5 semitones)
-      float random_pitch = -0.5f + ((float)rand() / (float)RAND_MAX) * (1.0f);
-      snprintf(param_name, sizeof(param_name), "osc%d.pitch", i + 1);
-      synth_set_param(synth, param_name, random_pitch);
-
-      // Randomize detune (-0.05 to 0.05)
-      float random_detune = -0.05f + ((float)rand() / (float)RAND_MAX) * (0.1f);
-      snprintf(param_name, sizeof(param_name), "osc%d.detune", i + 1);
-      synth_set_param(synth, param_name, random_detune);
-
-      // Randomize gain (0.3 to 0.7)
-      float random_gain = 0.3f + ((float)rand() / (float)RAND_MAX) * (0.4f);
-      snprintf(param_name, sizeof(param_name), "osc%d.gain", i + 1);
-      synth_set_param(synth, param_name, random_gain);
-      char waveform_param_name[16];
-      snprintf(waveform_param_name, sizeof(waveform_param_name), "osc%d.waveform", i + 1);
-      synth_set_param(synth, waveform_param_name, 0.0f); // Default waveform to sine
-    }
   }
-  
-  // Specific default parameters for Bass (osc[4])
-  
-  
-  synth_set_param(synth, "osc1.waveform", 0.0f);
-  synth_set_param(synth, "osc2.waveform", 0.0f);
-  synth_set_param(synth, "osc3.waveform", 0.0f);
-  synth_set_param(synth, "osc4.waveform", 0.0f);
-  
+
   // Initialize global ADSR
   adsr_init(&synth->adsr, samplerate);
-  
+
   for (int v = 0; v < voices; ++v)
     voice_init(&synth->voices[v], samplerate);
   synth->timestamp_counter = 0;
-  
-  // Initialize active_melody_notes
-  for (int i = 0; i < MAX_MELODY_POLYPHONY; ++i) {
-      active_melody_notes[i].active = 0;
-  }
 
-#ifndef __EMSCRIPTEN__
-  // Load default config at startup
-  synth_load_default_config(synth);
-#endif
-  
   return 1;
 }
 
-void synth_shutdown(Synth *synth) { 
-#ifndef __EMSCRIPTEN__
-  // Save current settings to default config before shutdown
-  synth_save_default_config(synth);
-#endif
-  midi_shutdown(&synth->midi); 
+void synth_core_shutdown(Synth *synth) {
+  fx_cleanup(&synth->fx);
+}
+
+void synth_reset(Synth *synth) {
+  for (int v = 0; v < synth->max_voices; ++v) {
+    synth->voices[v].active = 0;
+    adsr_reset(&synth->voices[v].adsr);
+  }
+  arpeggiator_clear_notes(&synth->arp);
+  synth->arp.step = 0;
+  synth->arp.step_phase = 0.0f;
+  synth->arp_last_played_note = -1;
+  for (int l = 0; l < 3; ++l) {
+    synth->lfos[l].phase_acc = 0.0f;
+    synth->lfos[l].notes_pressed = 0;
+  }
+  synth->ring_mod.phase = 0.0f;
+  synth->mixer.compressor.envelope_L = 0.0f;
+  synth->mixer.compressor.envelope_R = 0.0f;
+  synth->mixer.compressor.gain_reduction = 0.0f;
+  synth->mixer.auto_gain_gain = 1.0f;
+  synth->mixer.dc_filter_state_L = 0.0f;
+  synth->mixer.dc_filter_state_R = 0.0f;
+  fx_reset(&synth->fx);
 }
 
 void synth_set_bpm(Synth *synth, float bpm) {
   fx_set_bpm(&synth->fx, bpm);
 }
 
-void synth_audio_callback(void *userdata, Uint8 *stream, int len) {
+void synth_render(Synth *synth, float *out, int frames) {
+  memset(out, 0, sizeof(float) * (size_t)frames * 2);
+
+  for (int done = 0; done < frames;) {
+    int n = frames - done;
+    if (n > SYNTH_CHUNK_FRAMES)
+      n = SYNTH_CHUNK_FRAMES;
+    float *chunk = out + (size_t)done * 2;
+
+    synth_update_arpeggiator(synth, n);
+    synth_update_startup_melody(synth, n); // Update the startup melody playback
+
+    float *vbuf = synth->voice_scratch;
+    for (int v = 0; v < synth->max_voices; ++v) {
+      if (!synth->voices[v].active)
+        continue;
+      memset(vbuf, 0, sizeof(float) * (size_t)n * 2);
+      voice_render(&synth->voices[v], synth->osc, synth->lfos, synth->mixer.osc_gain,
+                   synth->pitch_bend, vbuf, n);
+      for (int i = 0; i < n * 2; ++i)
+        chunk[i] += vbuf[i];
+    }
+
+    mixer_apply(&synth->mixer, chunk, n);
+    ring_mod_process(&synth->ring_mod, chunk, n);
+    fx_process(&synth->fx, chunk, n);
+
+    // Feed the oscilloscope tap with the mono mix of the final output.
+    if (synth->scope) {
+      for (int i = 0; i < n; ++i) {
+        float mixed_sample = 0.5f * (chunk[i * 2 + 0] + chunk[i * 2 + 1]);
+        mixed_sample *= 4.0f; // Increased amplitude for oscilloscope display
+        scope_feed(synth->scope, mixed_sample);
+      }
+    }
+
+    done += n;
+  }
+}
+
+void synth_audio_callback(void *userdata, uint8_t *stream, int len) {
   Synth *synth = (Synth *)userdata;
-  const int frames = len / (sizeof(float) * 2);
-  float *out = (float *)stream;
-  memset(out, 0, sizeof(float) * frames * 2);
-  
-  synth_update_arpeggiator(synth, frames);
-  synth_update_startup_melody(synth, frames); // Update the startup melody playback
+  const int frames = len / (int)(sizeof(float) * 2);
+  synth_render(synth, (float *)stream, frames);
 
-  float *vbuf = (float *)calloc(frames * 2, sizeof(float));
-  if (!vbuf)
-    return; // or handle error
-  for (int v = 0; v < synth->max_voices; ++v) {
-    if (!synth->voices[v].active)
-      continue;
-    memset(vbuf, 0, sizeof(float) * frames * 2);
-    voice_render(&synth->voices[v], synth->osc, synth->lfos, synth->mixer.osc_gain, vbuf, frames);
-    for (int i = 0; i < frames * 2; ++i)
-      out[i] += vbuf[i];
+  if (synth->measure_cpu) {
+    clock_t now = clock();
+    synth->cpu_usage = 100.0f * ((float)(now - (clock_t)synth->cpu_last_clock) / (float)CLOCKS_PER_SEC) /
+                       (frames / synth->sample_rate);
+    synth->cpu_last_clock = (unsigned long long)now;
   }
-  free(vbuf);
-
-  mixer_apply(&synth->mixer, out, frames);
-  ring_mod_process(&synth->ring_mod, out, frames);
-  fx_process(&synth->fx, out, frames);
-
-  static clock_t last = 0;
-  clock_t now = clock();
-  synth->cpu_usage = 100.0f * ((float)(now - last) / (float)CLOCKS_PER_SEC) /
-                     (frames / 48000.0f);
-  last = now;
-
-  // Feed oscilloscope with proper audio samples
-  static int debug_counter = 0;
-  float max_sample = 0.0f;
-  
-  for (int n = 0; n < frames; ++n) {
-    float mixed_sample = 0.5f * (out[n * 2 + 0] + out[n * 2 + 1]);
-    mixed_sample *= 4.0f; // Increased amplitude for oscilloscope display
-	oscilloscope_feed(mixed_sample);
-    oscilloscope_update_fft(mixed_sample);
-    
-    // Track max amplitude for debugging
-    float abs_sample = fabsf(mixed_sample);
-    if (abs_sample > max_sample) max_sample = abs_sample;
-  }
-  
-
 }
 
 int synth_active_voices(const Synth *synth) {
@@ -437,6 +418,35 @@ void synth_note_off(Synth *synth, int note) {
       }
       return;
     }
+  }
+}
+
+void synth_midi_note_on(Synth *synth, int note, float velocity) {
+  if (velocity <= 0.0f) {
+    synth_midi_note_off(synth, note);
+    return;
+  }
+  if (synth->arp.enabled) {
+    arpeggiator_note_on(&synth->arp, note);
+  } else {
+    synth_note_on(synth, note, velocity);
+  }
+}
+
+void synth_midi_note_off(Synth *synth, int note) {
+  if (synth->arp.enabled) {
+    arpeggiator_note_off(&synth->arp, note);
+  } else {
+    synth_note_off(synth, note);
+  }
+}
+
+void synth_all_notes_off(Synth *synth) {
+  arpeggiator_clear_notes_with_synth(&synth->arp, synth);
+  synth->arp_last_played_note = -1;
+  for (int v = 0; v < synth->max_voices; ++v) {
+    if (synth->voices[v].active)
+      voice_off(&synth->voices[v]);
   }
 }
 

@@ -26,6 +26,24 @@
 			}
 		},
 		{
+			"name": "vst3",
+			"displayName": "Configure Release with VST3 plug-in",
+			"description": "Builds the standalone app and the VST3 plug-in (downloads the Steinberg VST 3 SDK)",
+			"inherits": "release",
+			"cacheVariables": {
+				"SYNTH_BUILD_VST3": "ON"
+			}
+		},
+		{
+			"name": "vst3-macos-universal",
+			"displayName": "Configure Release for macOS (arm64 + x86_64) with VST3 plug-in",
+			"inherits": "vst3",
+			"cacheVariables": {
+				"CMAKE_OSX_ARCHITECTURES": "arm64;x86_64",
+				"CMAKE_OSX_DEPLOYMENT_TARGET": "11.0"
+			}
+		},
+		{
 			"name": "common-windows",
 			"hidden": true,
 			"generator": "Visual Studio 17 2022",
@@ -45,6 +63,15 @@
 			"inherits": "common-windows",
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "Release"
+			}
+		},
+		{
+			"name": "vst3-windows",
+			"displayName": "Configure Release Windows with VST3 plug-in",
+			"inherits": "common-windows",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Release",
+				"SYNTH_BUILD_VST3": "ON"
 			}
 		},
 		{
@@ -74,6 +101,18 @@
 			"targets": ["synth"]
 		},
 		{
+			"name": "vst3",
+			"displayName": "Build Release with VST3 plug-in",
+			"configurePreset": "vst3",
+			"configuration": "Release"
+		},
+		{
+			"name": "vst3-macos-universal",
+			"displayName": "Build Release for macOS (universal) with VST3 plug-in",
+			"configurePreset": "vst3-macos-universal",
+			"configuration": "Release"
+		},
+		{
 			"name": "debug-windows",
 			"displayName": "Build Debug Windows",
 			"configurePreset": "debug-windows",
@@ -85,6 +124,12 @@
 			"configurePreset": "release-windows",
 			"configuration": "Release",
 			"targets": ["synth"]
+		},
+		{
+			"name": "vst3-windows",
+			"displayName": "Build Release Windows with VST3 plug-in",
+			"configurePreset": "vst3-windows",
+			"configuration": "Release"
 		},
 		{
 			"name": "emscripten",

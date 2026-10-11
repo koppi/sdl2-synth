@@ -1,0 +1,10 @@
+SDL2 Synth - VST3 plug-in (Windows, 64 bit)
+===========================================
+
+Copy the whole "sdl2-synth.vst3" folder into the VST3 folder:
+
+  all users (needs administrator rights): C:\Program Files\Common Files\VST3\
+  current user (some hosts only):         %LOCALAPPDATA%\Programs\Common\VST3\
+
+Then rescan plug-ins in your host. The plug-in appears as an instrument called
+"SDL2 Synth". No extra runtime needs to be installed.

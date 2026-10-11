@@ -25,7 +25,7 @@ void voice_off(Voice *v) {
   // Voice stays active until ADSR reaches IDLE state
 }
 
-void voice_render(Voice *v, const Oscillator *osc, const LFO *lfo, const float *osc_gains, float *stereo, int frames) {
+void voice_render(Voice *v, const Oscillator *osc, const LFO *lfo, const float *osc_gains, float pitch_offset, float *stereo, int frames) {
   // Get ADSR envelope value for this block
   float adsr_value = adsr_process(&v->adsr, frames);
   
@@ -46,7 +46,7 @@ void voice_render(Voice *v, const Oscillator *osc, const LFO *lfo, const float *
     
     // Process each oscillator with gain and panning
     for (int o = 0; o < 4; ++o) {
-      float modified_note = v->note;
+      float modified_note = v->note + pitch_offset;
       
       // Apply pitch LFO (only to main oscillators 0-3)
       if (o < 4 && lfo[0].enabled) {

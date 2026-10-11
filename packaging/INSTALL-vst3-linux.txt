@@ -1,0 +1,17 @@
+SDL2 Synth - VST3 plug-in (Linux)
+=================================
+
+Copy the whole "sdl2-synth.vst3" folder into one of the standard VST3 folders:
+
+  per user:    ~/.vst3/
+  system-wide: /usr/lib/vst3/   or   /usr/local/lib/vst3/
+
+For example:
+
+  mkdir -p ~/.vst3 && cp -r sdl2-synth.vst3 ~/.vst3/
+
+Then rescan plug-ins in your host (Reaper, Ardour, Bitwig, Carla, ...). The
+plug-in appears as an instrument called "SDL2 Synth".
+
+Requirements: an X11 session (or XWayland) and a host that provides the VST3
+IRunLoop interface for plug-in editors, as all Linux VST3 hosts do.

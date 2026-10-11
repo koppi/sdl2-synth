@@ -1,6 +1,10 @@
 #pragma once
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum { LFO_SINE, LFO_TRIANGLE, LFO_SQUARE, LFO_SAW, LFO_RANDOM } LfoWaveform;
 
 typedef enum { LFO_TARGET_FREQUENCY, LFO_TARGET_FILTER, LFO_TARGET_AMPLITUDE, LFO_TARGET_PAN } LfoTarget;
@@ -28,3 +32,7 @@ float lfo_process(LFO *lfo);
 float lfo_get_modulation_value(LFO *lfo);
 void lfo_note_on(LFO *lfo);
 void lfo_note_off(LFO *lfo);
+
+#ifdef __cplusplus
+}
+#endif

@@ -2,15 +2,60 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "oscilloscope.h"
+#include <time.h>
 #include "gui.h"
 #include "arpeggiator.h"
+#include "midi.h"
 
 static App *g_app_for_toggle = NULL;
 static void toggle_chord_progression(void);
 static void generate_random_chord_progression(App *app);
 static void play_chord(App *app, int root_note, float velocity);
 static void stop_active_notes(App *app);
+
+// Standalone-specific engine setup on top of synth_core_init(): randomised
+// oscillator defaults, hardware MIDI input and the saved default config.
+static int app_synth_init(App *app) {
+  Synth *synth = &app->synth;
+
+  srand((unsigned)time(NULL)); // Seed random number generator
+
+  if (!synth_core_init(synth, 48000, 16)) {
+    return 0;
+  }
+
+  synth->arp.enabled = 1; // Will be enabled when progression starts
+
+  scope_init(&app->scope);
+  synth->scope = &app->scope;
+  synth->measure_cpu = 1;
+
+  midi_init(&synth->midi, synth);
+
+  char param_name[16];
+  for (int i = 0; i < 4; ++i) {
+    // Randomize pitch (-0.5 to 0.5 semitones)
+    float random_pitch = -0.5f + ((float)rand() / (float)RAND_MAX) * (1.0f);
+    snprintf(param_name, sizeof(param_name), "osc%d.pitch", i + 1);
+    synth_set_param(synth, param_name, random_pitch);
+
+    // Randomize detune (-0.05 to 0.05)
+    float random_detune = -0.05f + ((float)rand() / (float)RAND_MAX) * (0.1f);
+    snprintf(param_name, sizeof(param_name), "osc%d.detune", i + 1);
+    synth_set_param(synth, param_name, random_detune);
+
+    // Randomize gain (0.3 to 0.7)
+    float random_gain = 0.3f + ((float)rand() / (float)RAND_MAX) * (0.4f);
+    snprintf(param_name, sizeof(param_name), "osc%d.gain", i + 1);
+    synth_set_param(synth, param_name, random_gain);
+  }
+
+#ifndef __EMSCRIPTEN__
+  // Load default config at startup
+  synth_load_default_config(synth);
+#endif
+  return 1;
+}
 
 int app_init(App *app) {
 
@@ -81,15 +126,13 @@ int app_init(App *app) {
   SDL_GL_SetSwapInterval(0); // Disable vsync for emscripten to avoid timing conflicts
 #endif
 
-  if (!synth_init(&app->synth, 48000, 1024, 16)) {
+  if (!app_synth_init(app)) {
     return 0;
   }
 
   gui_init(app->window, app->gl_context);
   g_app_for_toggle = app;
-  gui_set_humanize_vars(&app->chord_progression_enabled, &app->humanize_velocity_amount, &app->humanize_timing_amount, &app->bpm, toggle_chord_progression, &app->synth);
-
-  oscilloscope_init();
+  gui_set_humanize_vars(&app->chord_progression_enabled, &app->humanize_velocity_amount, &app->humanize_timing_amount, &app->bpm, toggle_chord_progression, &app->synth, &app->scope);
 
   SDL_AudioSpec want = {0}, got = {0};
   want.freq = 48000;
@@ -384,8 +427,12 @@ void app_shutdown(App *app) {
   
   // Then shutdown other components
   gui_shutdown();
-  oscilloscope_shutdown();
-  synth_shutdown(&app->synth);
+#ifndef __EMSCRIPTEN__
+  // Save current settings to default config before shutdown
+  synth_save_default_config(&app->synth);
+#endif
+  midi_shutdown(&app->synth.midi);
+  synth_core_shutdown(&app->synth);
   SDL_GL_DeleteContext(app->gl_context);
   if (app->window)
     SDL_DestroyWindow(app->window);

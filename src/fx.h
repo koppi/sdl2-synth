@@ -11,7 +11,9 @@ typedef struct {
   int delay_bufsize, delay_pos;
   float *flanger_buffer;
   int flanger_bufsize, flanger_pos;
+  float flanger_phase; // LFO phase accumulator (0..1), persists across blocks
   int samplerate;
+  struct ReverbState *reverb; // Per-instance Freeverb-style reverb state
   
   // Multi-tap delay synced to BPM
   float bpm;
@@ -27,8 +29,9 @@ typedef struct {
   float filter_resonance;
   float filter_drive;
   float filter_mix;
-  int filter_oversampling;
-  AnalogFilter filter;
+  int filter_oversampling; // Index into {1x, 2x, 4x, 8x}
+  AnalogFilter filter;     // Left channel (also holds the shared filter type)
+  AnalogFilter filter_r;   // Right channel (identical settings, own state)
 } FX;
 
 #ifdef __cplusplus
@@ -39,6 +42,8 @@ void fx_init(FX *fx, int samplerate);
 void fx_set_param(FX *fx, const char *param, float value);
 void fx_set_bpm(FX *fx, float bpm);
 void fx_process(FX *fx, float *stereo, int frames);
+// Clears delay lines, reverb tails and filter state without touching parameters.
+void fx_reset(FX *fx);
 void fx_cleanup(FX *fx);
 
 #ifdef __cplusplus

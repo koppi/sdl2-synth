@@ -7,6 +7,7 @@ typedef struct {
   SDL_GLContext gl_context;
   SDL_AudioDeviceID audio;
   Synth synth;
+  ScopeBuffer scope;
   int quit;
   int show_help;
 

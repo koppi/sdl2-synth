@@ -2,7 +2,19 @@ cmake_minimum_required(VERSION 3.15)
 
 # set(CMAKE_BUILD_TYPE Debug)
 
-project(synth LANGUAGES C CXX VERSION 0.0.1)
+# Version used for the plug-in metadata and release packages. Release builds
+# override it from the git tag: cmake -DSYNTH_VERSION=1.2.3 ...
+set(SYNTH_VERSION "0.1.0" CACHE STRING "Version (major.minor.patch) of the synth")
+project(synth LANGUAGES C CXX VERSION ${SYNTH_VERSION})
+
+option(SYNTH_BUILD_STANDALONE "Build the standalone SDL2 application" ON)
+option(SYNTH_BUILD_VST3 "Build the VST3 plug-in (downloads the Steinberg VST 3 SDK)" OFF)
+
+if(EMSCRIPTEN)
+  # The browser build only makes sense as the standalone app.
+  set(SYNTH_BUILD_STANDALONE ON)
+  set(SYNTH_BUILD_VST3 OFF)
+endif()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
@@ -21,186 +33,181 @@ endif()
 include(FetchContent)
 set(FETCHCONTENT_QUIET FALSE)
 
-FetchContent_Declare(
-        SDL2
-        GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-        GIT_TAG release-2.32.10
-#        GIT_TAG main
-        GIT_SHALLOW TRUE
-        GIT_PROGRESS TRUE
-)
-set(SDL_STATIC_PIC ON)
-set(SDL_STATIC ON)
-set(SDL_TEST OFF)
-set(SDL_TESTS OFF)
-FetchContent_MakeAvailable(SDL2)
-
-set(SDL2TTF_VENDORED TRUE)
-if(CMAKE_SYSTEM_NAME MATCHES "Emscripten")
-  set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-endif()
-FetchContent_Declare(
-        SDL2_ttf
-        GIT_REPOSITORY https://github.com/libsdl-org/SDL_ttf.git
-        GIT_TAG release-2.24.0
-        GIT_SHALLOW TRUE
-        GIT_PROGRESS TRUE
-)
-FetchContent_MakeAvailable(SDL2_ttf)
-
-set(LIBREMIDI_NO_JACK ON)
-if( ${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
-  set(LIBREMIDI_EMSCRIPTEN ON)
-endif()
-
-FetchContent_Declare(
-        libremidi
-        GIT_REPOSITORY https://github.com/celtera/libremidi.git
-        GIT_TAG master
-        GIT_SHALLOW TRUE
-        GIT_PROGRESS TRUE
-)
-FetchContent_MakeAvailable(libremidi)
-
+# ---------------------------------------------------------------------------
+# Dear ImGui (shared by the standalone app and the VST3 editor)
+# ---------------------------------------------------------------------------
 FetchContent_Declare(
         imgui
         GIT_REPOSITORY https://github.com/ocornut/imgui.git
-        GIT_TAG master
+        GIT_TAG v1.92.9b
         GIT_SHALLOW TRUE
         GIT_PROGRESS TRUE
 )
 FetchContent_MakeAvailable(imgui)
 
-set(IMGUI_SOURCES
+# Core widgets only: no backends, so this links into a plug-in without pulling
+# in SDL or OpenGL.
+set(IMGUI_CORE_SOURCES
     ${imgui_SOURCE_DIR}/imgui.cpp
     ${imgui_SOURCE_DIR}/imgui_draw.cpp
     ${imgui_SOURCE_DIR}/imgui_tables.cpp
     ${imgui_SOURCE_DIR}/imgui_widgets.cpp
-    ${imgui_SOURCE_DIR}/imgui_demo.cpp
 )
+add_library(imgui_core STATIC ${IMGUI_CORE_SOURCES})
+target_include_directories(imgui_core PUBLIC ${imgui_SOURCE_DIR})
+# Keep ImGui symbols private so a plug-in never clashes with a host's own copy.
+set_target_properties(imgui_core PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON)
 
-set(IMGUI_BACKENDS
-    ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl2.cpp
-    ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
+# ---------------------------------------------------------------------------
+# Synth core: the DSP engine, free of SDL / MIDI hardware / GUI dependencies
+# ---------------------------------------------------------------------------
+set(SYNTH_CORE_SOURCES
+    src/adsr.c
+    src/analog_filter.c
+    src/arpeggiator.c
+    src/cJSON.c
+    src/fx.c
+    src/lfo.c
+    src/midi_map.c
+    src/mixer.c
+    src/osc.c
+    src/ring_modulator.c
+    src/synth.c
+    src/utils.c
+    src/voice.c
 )
-
-add_library(imgui_lib STATIC ${IMGUI_SOURCES} ${IMGUI_BACKENDS})
-set_source_files_properties(${IMGUI_SOURCES} ${IMGUI_BACKENDS} PROPERTIES LANGUAGE CXX)
-target_include_directories(imgui_lib PUBLIC ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends ${imgui_SOURCE_DIR})
-target_link_libraries(imgui_lib PUBLIC SDL2::SDL2)
-
-set(SOURCES
-        src/adsr.c
-        src/analog_filter.c
-        src/app.c
-        src/arpeggiator.c
-        src/fx.c
-        src/lfo.c
-        src/main.c
-        src/midi.c
-        src/mixer.c
-        src/osc.c
-        src/oscilloscope.c
-        src/ring_modulator.c
-        src/synth.c
-        src/utils.c
-        src/voice.c
-        src/cJSON.c
-        src/gui.cpp
-)
-add_executable(synth ${SOURCES})
-set_source_files_properties(src/gui.cpp PROPERTIES LANGUAGE CXX)
-install(TARGETS synth DESTINATION bin)
-
-if(CMAKE_SYSTEM_NAME MATCHES "Emscripten")
-  target_link_libraries(synth
-    SDL2::SDL2main
-    SDL2-static
-    SDL2_ttf
-    libremidi::libremidi
-    imgui_lib
-    m
-  )
-
-  # Enable asyncify for emscripten_sleep support
-  set(CMAKE_EXECUTABLE_SUFFIX ".js")
-  set_target_properties(synth PROPERTIES
-    SUFFIX ".js"
-     LINK_FLAGS "-fPIC -s ASYNCIFY -s ASSERTIONS=1 -s ASYNCIFY_STACK_SIZE=5120000 -s WASM=1 -s USE_WEBGL2=1 -s FULL_ES3=1 -s EXPORTED_RUNTIME_METHODS=['ccall','cwrap','JSEvents','Browser','HEAPU8'] -s EXPORTED_FUNCTIONS=['_main','_malloc','_free','_libremidi_devices_poll','libremidi_devices_input'] -s EXPORT_ALL -s FORCE_FILESYSTEM=0 -s NO_EXIT_RUNTIME=1 -s MIN_WEBGL_VERSION=2 -s MAX_WEBGL_VERSION=2 -s NO_DISABLE_EXCEPTION_CATCHING=1 -s ALLOW_MEMORY_GROWTH=1 -s STACK_SIZE=32MB -s INITIAL_MEMORY=512MB -s MAXIMUM_MEMORY=2GB -s SAFE_HEAP=1 -s ERROR_ON_UNDEFINED_SYMBOLS=0 -O2 --pre-js pre.js"
-  )
-  
-  set(CMAKE_DISABLE_FIND_PACKAGE_HarfBuzz TRUE)
-  file(COPY "index.html" DESTINATION ${CMAKE_BINARY_DIR})
-  
-  add_custom_command(TARGET synth PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    ${CMAKE_SOURCE_DIR}/pre.js
-    ${CMAKE_BINARY_DIR}/pre.js
-    COMMENT "Copying pre.js to build directory"
-  )
-  
-  add_custom_command(TARGET synth POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    ${CMAKE_SOURCE_DIR}/index.html
-    ${CMAKE_BINARY_DIR}/index.html
-    COMMENT "Copying index.html to build directory"
-  )
-  
-  add_custom_command(TARGET synth POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    ${CMAKE_SOURCE_DIR}/favicon.ico
-    ${CMAKE_BINARY_DIR}/favicon.ico
-    COMMENT "Copying favicon.ico to build directory"
-  )
-else()
-  find_package(OpenGL REQUIRED)
-  target_link_libraries(synth
-        PRIVATE
-        SDL2::SDL2main
-        SDL2
-        SDL2_ttf
-        libremidi::libremidi
-        imgui_lib
-        $<$<NOT:$<PLATFORM_ID:Windows>>:m>
-        OpenGL::GL
-       )
+# Absolute paths so the plug-in subdirectory can reuse the list.
+list(TRANSFORM SYNTH_CORE_SOURCES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
+add_library(synth_core STATIC ${SYNTH_CORE_SOURCES})
+target_include_directories(synth_core PUBLIC src)
+if(NOT WIN32)
+  target_link_libraries(synth_core PUBLIC m)
 endif()
+set_target_properties(synth_core PROPERTIES C_VISIBILITY_PRESET hidden)
 
-install(TARGETS synth
-  RUNTIME ARCHIVE LIBRARY RUNTIME FRAMEWORK BUNDLE PUBLIC_HEADER RESOURCE)
+# The ImGui user interface itself (no platform or renderer backend)
+add_library(synth_ui STATIC src/synth_ui.cpp)
+target_link_libraries(synth_ui PUBLIC synth_core imgui_core)
+set_target_properties(synth_ui PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON)
 
-if (WIN32)
-  install(TARGETS synth
-    COMPONENT synth
-    RUNTIME_DEPENDENCIES
-    PRE_EXCLUDE_REGEXES "api-ms-" "ext-ms-"
-    POST_EXCLUDE_REGEXES ".*system32/.*\\.dll"
-    DIRECTORIES $<TARGET_FILE_DIR:synth>
+# ---------------------------------------------------------------------------
+# Standalone SDL2 application
+# ---------------------------------------------------------------------------
+if(SYNTH_BUILD_STANDALONE)
+  # Ship a single self-contained executable: link SDL and libremidi statically.
+  set(SDL_SHARED OFF)
+  set(SDL_STATIC ON)
+  set(SDL_STATIC_PIC ON)
+  set(SDL_TEST OFF)
+  set(SDL_TESTS OFF)
+  set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+
+  FetchContent_Declare(
+          SDL2
+          GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+          GIT_TAG release-2.32.10
+          GIT_SHALLOW TRUE
+          GIT_PROGRESS TRUE
+  )
+  FetchContent_MakeAvailable(SDL2)
+
+  set(LIBREMIDI_NO_JACK ON)
+  if( ${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
+    set(LIBREMIDI_EMSCRIPTEN ON)
+  endif()
+
+  FetchContent_Declare(
+          libremidi
+          GIT_REPOSITORY https://github.com/celtera/libremidi.git
+          GIT_TAG v5.4.3
+          GIT_SHALLOW TRUE
+          GIT_PROGRESS TRUE
+  )
+  FetchContent_MakeAvailable(libremidi)
+
+  set(IMGUI_BACKENDS
+      ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl2.cpp
+      ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
   )
 
-else()
-  if(NOT CMAKE_SYSTEM_NAME MATCHES "Emscripten")
-    install(TARGETS synth
-      RUNTIME_DEPENDENCIES
-      POST_INCLUDE_FILES ${EXTRA_LIBRARY}
-      RUNTIME DESTINATION .
-      LIBRARY DESTINATION ./lib
-      FRAMEWORK DESTINATION ./lib
+  # ImGui plus the SDL2 / OpenGL3 backends used by the standalone app
+  add_library(imgui_lib STATIC ${IMGUI_BACKENDS} ${imgui_SOURCE_DIR}/imgui_demo.cpp)
+  set_source_files_properties(${IMGUI_BACKENDS} ${imgui_SOURCE_DIR}/imgui_demo.cpp PROPERTIES LANGUAGE CXX)
+  target_include_directories(imgui_lib PUBLIC ${imgui_SOURCE_DIR}/backends)
+  target_link_libraries(imgui_lib PUBLIC imgui_core SDL2::SDL2)
+
+  set(SOURCES
+          src/app.c
+          src/main.c
+          src/midi.c
+          src/gui.cpp
+  )
+  add_executable(synth ${SOURCES})
+  set_source_files_properties(src/gui.cpp PROPERTIES LANGUAGE CXX)
+
+  if(CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+    target_link_libraries(synth
+      SDL2::SDL2main
+      SDL2-static
+      libremidi::libremidi
+      imgui_lib
+      synth_ui
+      synth_core
+      m
     )
-endif()
+
+    # Enable asyncify for emscripten_sleep support
+    set(CMAKE_EXECUTABLE_SUFFIX ".js")
+    set_target_properties(synth PROPERTIES
+      SUFFIX ".js"
+       LINK_FLAGS "-fPIC -s ASYNCIFY -s ASSERTIONS=1 -s ASYNCIFY_STACK_SIZE=5120000 -s WASM=1 -s USE_WEBGL2=1 -s FULL_ES3=1 -s EXPORTED_RUNTIME_METHODS=['ccall','cwrap','JSEvents','Browser','HEAPU8'] -s EXPORTED_FUNCTIONS=['_main','_malloc','_free','_libremidi_devices_poll','libremidi_devices_input'] -s EXPORT_ALL -s FORCE_FILESYSTEM=0 -s NO_EXIT_RUNTIME=1 -s MIN_WEBGL_VERSION=2 -s MAX_WEBGL_VERSION=2 -s NO_DISABLE_EXCEPTION_CATCHING=1 -s ALLOW_MEMORY_GROWTH=1 -s STACK_SIZE=32MB -s INITIAL_MEMORY=512MB -s MAXIMUM_MEMORY=2GB -s SAFE_HEAP=1 -s ERROR_ON_UNDEFINED_SYMBOLS=0 -O2 --pre-js pre.js"
+    )
+
+    file(COPY "index.html" DESTINATION ${CMAKE_BINARY_DIR})
+
+    add_custom_command(TARGET synth PRE_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      ${CMAKE_SOURCE_DIR}/pre.js
+      ${CMAKE_BINARY_DIR}/pre.js
+      COMMENT "Copying pre.js to build directory"
+    )
+
+    add_custom_command(TARGET synth POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      ${CMAKE_SOURCE_DIR}/index.html
+      ${CMAKE_BINARY_DIR}/index.html
+      COMMENT "Copying index.html to build directory"
+    )
+
+    add_custom_command(TARGET synth POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      ${CMAKE_SOURCE_DIR}/favicon.ico
+      ${CMAKE_BINARY_DIR}/favicon.ico
+      COMMENT "Copying favicon.ico to build directory"
+    )
+  else()
+    # Link the classic libGL.so.1 (present on every desktop) rather than the
+    # GLVND libOpenGL.so.0 so the released binary runs on more systems.
+    set(OpenGL_GL_PREFERENCE LEGACY)
+    find_package(OpenGL REQUIRED)
+    target_link_libraries(synth
+          PRIVATE
+          SDL2::SDL2main
+          SDL2::SDL2
+          libremidi::libremidi
+          imgui_lib
+          synth_ui
+          synth_core
+          OpenGL::GL
+         )
+    install(TARGETS synth RUNTIME DESTINATION bin)
+  endif()
 endif()
 
-# Add post-build target to copy all DLLs from _deps recursively
-if(WIN32)
-  add_custom_target(copy_deps_dlls ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_BINARY_DIR}/_deps
-    ${CMAKE_BINARY_DIR}
-    COMMAND ${CMAKE_COMMAND} -E remove
-    ${CMAKE_BINARY_DIR}/*.a
-    ${CMAKE_BINARY_DIR}/*.lib
-    ${CMAKE_BINARY_DIR}/*.exp
-    COMMENT "Copying all DLLs from _deps to binary directory"
-  )
-  add_dependencies(copy_deps_dlls synth)
+# ---------------------------------------------------------------------------
+# VST3 plug-in
+# ---------------------------------------------------------------------------
+if(SYNTH_BUILD_VST3)
+  enable_testing() # ctest looks for the test file in the build root
+  add_subdirectory(src/vst3)
 endif()

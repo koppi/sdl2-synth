@@ -1,0 +1,98 @@
+name: Release
+
+# Push a version tag to publish a release:
+#
+#   git tag v1.2.3 && git push origin v1.2.3
+#
+# Tags look like vMAJOR.MINOR.PATCH, optionally followed by a suffix
+# (v1.2.3-rc1 is published as a pre-release). Run the workflow by hand to do a
+# dry run that builds everything but publishes nothing.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write # create the GitHub release
+
+jobs:
+  version:
+    name: Determine version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      label: ${{ steps.v.outputs.label }}
+      prerelease: ${{ steps.v.outputs.prerelease }}
+    steps:
+      - id: v
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            tag="$GITHUB_REF_NAME"
+            version="$(echo "${tag#v}" | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+' || true)"
+            if [ -z "$version" ]; then
+              echo "::error::Tag '$tag' must look like v1.2.3 (optionally followed by a suffix such as -rc1)"
+              exit 1
+            fi
+            label="$tag"
+            case "$tag" in *-*) prerelease=true ;; *) prerelease=false ;; esac
+          else
+            version=0.0.0
+            label="manual-${GITHUB_SHA::7}"
+            prerelease=false
+          fi
+          {
+            echo "version=$version"
+            echo "label=$label"
+            echo "prerelease=$prerelease"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build
+    needs: version
+    uses: ./.github/workflows/build.yml
+    with:
+      version: ${{ needs.version.outputs.version }}
+      label: ${{ needs.version.outputs.label }}
+      retention-days: 3
+    secrets: inherit
+
+  publish:
+    name: Publish release
+    needs: [version, build]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: package-*
+          path: dist
+          merge-multiple: true
+
+      - name: Checksums
+        run: |
+          cd dist
+          ls -l
+          sha256sum * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          PRERELEASE: ${{ needs.version.outputs.prerelease }}
+        run: |
+          flags=()
+          if [ "$PRERELEASE" = true ]; then flags+=(--prerelease); fi
+          gh release create "$TAG" dist/* \
+            --verify-tag \
+            --title "SDL2 Synth $TAG" \
+            --notes-file .github/release-notes.md \
+            --generate-notes \
+            "${flags[@]}"

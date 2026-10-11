@@ -2,6 +2,10 @@
 
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Forward declarations for libremidi types
 typedef struct libremidi_midi_in_handle libremidi_midi_in_handle_t;
 typedef struct libremidi_midi_observer_handle libremidi_midi_observer_handle_t;
@@ -55,13 +59,13 @@ typedef struct {
   int learned_count;
 } Midi;
 
+// --- Hardware MIDI input (libremidi). Implemented in midi.c, standalone only.
 void midi_init(Midi *midi, struct Synth *synth);
 void midi_shutdown(Midi *midi);
+
+// --- CC mapping and MIDI Learn. Implemented in midi_map.c (part of the core).
 void midi_map_cc_to_param(struct Synth *synth, int cc, int value);
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 // Arms `value` to be bound to the next incoming MIDI CC (only takes effect
 // while midi->learn_mode is set). `value` is a float* if is_int is 0, or an
 // int* if is_int is 1.
@@ -69,6 +73,7 @@ void midi_arm_learn(Midi *midi, const char *label, void *value, int is_int, floa
 void midi_clear_learned(Midi *midi);
 int midi_is_armed(const Midi *midi, const void *value);
 const MidiLearnedMapping *midi_find_mapping(const Midi *midi, const void *value);
+
 #ifdef __cplusplus
 }
 #endif

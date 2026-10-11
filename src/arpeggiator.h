@@ -1,6 +1,10 @@
 #pragma once
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct Synth; // Forward declaration
 
 typedef enum {
@@ -88,3 +92,7 @@ void arpeggiator_note_off(Arpeggiator *arp, int note);
 void arpeggiator_clear_notes(Arpeggiator *arp);
 void arpeggiator_clear_notes_with_synth(Arpeggiator *arp, struct Synth *synth);
 int arpeggiator_step(Arpeggiator *arp, float samplerate, struct Synth *synth);
+
+#ifdef __cplusplus
+}
+#endif

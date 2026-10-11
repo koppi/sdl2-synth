@@ -1,6 +1,10 @@
 #pragma once
 #include <math.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
   // Bus compressor state
   float envelope_L;
@@ -59,3 +63,7 @@ void update_level_meters(float *stereo, int frames, float *peak_level, float *rm
 // Utility functions
 float db_to_linear(float db);
 float linear_to_db(float linear);
+
+#ifdef __cplusplus
+}
+#endif

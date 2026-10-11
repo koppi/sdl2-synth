@@ -1,6 +1,10 @@
 #pragma once
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum { OSC_SINE, OSC_SAW, OSC_SQUARE, OSC_TRI, OSC_NOISE } OscWaveform;
 
 typedef struct Oscillator {
@@ -22,3 +26,7 @@ typedef struct Oscillator {
 void osc_init(Oscillator *osc, float samplerate);
 void osc_set_param(Oscillator *osc, const char *param, float value);
 float osc_process(Oscillator *osc, float note, float *phase_acc);
+
+#ifdef __cplusplus
+}
+#endif

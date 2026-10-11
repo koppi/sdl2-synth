@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum {
   ADSR_IDLE,
   ADSR_ATTACK,
@@ -28,3 +32,7 @@ void adsr_gate_on(AdsrEnvelope *env);
 void adsr_gate_off(AdsrEnvelope *env);
 float adsr_process(AdsrEnvelope *env, int frames);
 void adsr_reset(AdsrEnvelope *env);
+
+#ifdef __cplusplus
+}
+#endif
