@@ -47,7 +47,10 @@
 			"name": "common-windows",
 			"hidden": true,
 			"generator": "Visual Studio 17 2022",
-			"binaryDir": "build/${presetName}"
+			"binaryDir": "build/${presetName}",
+			"cacheVariables": {
+				"CMAKE_POLICY_VERSION_MINIMUM": "3.5"
+			}
 		},
 		{
 			"name": "debug-windows",

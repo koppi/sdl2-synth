@@ -7,6 +7,7 @@ Live demo at: https://koppi.github.io/sdl2-synth
 ![GitHub last commit](https://img.shields.io/github/last-commit/koppi/sdl2-synth)
 ![GitHub commit activity](https://img.shields.io/github/commit-activity/w/koppi/sdl2-synth)
 [![GitHub issues](https://img.shields.io/github/issues/koppi/sdl2-synth)](https://github.com/koppi/sdl2-synth/issues)
+[![GitHub release](https://img.shields.io/github/v/release/koppi/sdl2-synth?label=download%20VST3)](https://github.com/koppi/sdl2-synth/releases/latest)
 
 ## Features
 

@@ -57,6 +57,7 @@ jobs:
       version: ${{ needs.version.outputs.version }}
       label: ${{ needs.version.outputs.label }}
       retention-days: 3
+      include-standalone: false
     secrets: inherit
 
   publish:
@@ -92,7 +93,7 @@ jobs:
           if [ "$PRERELEASE" = true ]; then flags+=(--prerelease); fi
           gh release create "$TAG" dist/* \
             --verify-tag \
-            --title "SDL2 Synth $TAG" \
+            --title "SDL2 Synth VST3 $TAG" \
             --notes-file .github/release-notes.md \
             --generate-notes \
             "${flags[@]}"

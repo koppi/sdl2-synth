@@ -21,6 +21,10 @@ on:
         description: How long the uploaded packages are kept
         type: number
         default: 14
+      include-standalone:
+        description: Include standalone application packages
+        type: boolean
+        default: true
     secrets:
       # Optional. When all of them are set the macOS binaries are signed with
       # a Developer ID and the plug-in is notarized; otherwise they are only
@@ -82,14 +86,17 @@ jobs:
           echo "CXX=g++-12" >> "$GITHUB_ENV"
 
       - name: Configure
-        run: cmake --preset ${{ matrix.preset }} -DSYNTH_VERSION=${{ inputs.version }}
+        shell: bash
+        run: cmake --preset "${{ matrix.preset }}" -DSYNTH_VERSION="${{ inputs.version }}"
 
       - name: Build
+        shell: bash
         # The SDK runs its VST3 validator on the plug-in as a post-build step,
         # so a plug-in that fails validation fails the build.
-        run: cmake --build --preset ${{ matrix.preset }} --parallel
+        run: cmake --build --preset "${{ matrix.preset }}" --parallel
 
       - name: Test
+        shell: bash
         run: ctest --test-dir build/${{ matrix.preset }} -C Release --output-on-failure
 
       - name: Test the editor (Linux, virtual X server)
@@ -118,7 +125,7 @@ jobs:
           APP_PKG="sdl2-synth-standalone-$LABEL-$PLATFORM"
           echo "VST3_PKG=$VST3_PKG" >> "$GITHUB_ENV"
           echo "APP_PKG=$APP_PKG"   >> "$GITHUB_ENV"
-          mkdir -p "stage/$VST3_PKG" "stage/$APP_PKG" out
+          mkdir -p "stage/$VST3_PKG" out
 
           # VST3 plug-in
           cp -R "$BUILD/VST3/Release/sdl2-synth.vst3" "stage/$VST3_PKG/"
@@ -126,14 +133,17 @@ jobs:
           cp LICENSE THIRD-PARTY-NOTICES.md "stage/$VST3_PKG/"
 
           # Standalone application
-          cmake --install "$BUILD" --config Release --prefix "$PWD/stage/install"
-          if [ "$RUNNER_OS" = Windows ]; then
-            cp stage/install/bin/synth.exe "stage/$APP_PKG/$exe"
-          else
-            cp stage/install/bin/synth "stage/$APP_PKG/$exe"
+          if [ "${{ inputs.include-standalone }}" = "true" ]; then
+            mkdir -p "stage/$APP_PKG"
+            cmake --install "$BUILD" --config Release --prefix "$PWD/stage/install"
+            if [ "$RUNNER_OS" = Windows ]; then
+              cp stage/install/bin/synth.exe "stage/$APP_PKG/$exe"
+            else
+              cp stage/install/bin/synth "stage/$APP_PKG/$exe"
+            fi
+            cp packaging/INSTALL-standalone.txt "stage/$APP_PKG/INSTALL.txt"
+            cp LICENSE THIRD-PARTY-NOTICES.md "stage/$APP_PKG/"
           fi
-          cp packaging/INSTALL-standalone.txt "stage/$APP_PKG/INSTALL.txt"
-          cp LICENSE THIRD-PARTY-NOTICES.md "stage/$APP_PKG/"
 
       - name: Sign for macOS (Developer ID, notarized)
         if: runner.os == 'macOS' && env.HAVE_APPLE_SIGNING == 'true'
@@ -180,7 +190,11 @@ jobs:
         run: |
           set -euo pipefail
           cd stage
-          for pkg in "$VST3_PKG" "$APP_PKG"; do
+          packages=("$VST3_PKG")
+          if [ "${{ inputs.include-standalone }}" = "true" ]; then
+            packages+=("$APP_PKG")
+          fi
+          for pkg in "${packages[@]}"; do
             case "$RUNNER_OS" in
               Linux)   tar -czf "../out/$pkg.tar.gz" "$pkg" ;;
               macOS)   ditto -c -k --keepParent "$pkg" "../out/$pkg.zip" ;;
