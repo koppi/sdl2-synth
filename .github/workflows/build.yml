@@ -93,7 +93,12 @@ jobs:
         shell: bash
         # The SDK runs its VST3 validator on the plug-in as a post-build step,
         # so a plug-in that fails validation fails the build.
-        run: cmake --build --preset "${{ matrix.preset }}" --parallel
+        run: |
+          if [[ "${{ runner.os }}" == "macOS" ]]; then
+            cmake --build --preset "${{ matrix.preset }}" --parallel -- -j1
+          else
+            cmake --build --preset "${{ matrix.preset }}" --parallel
+          fi
 
       - name: Test
         shell: bash
