@@ -58,10 +58,10 @@ jobs:
             os: ubuntu-22.04 # oldest glibc we can reasonably target
             platform: linux-x86_64
             preset: vst3
-          # - name: macOS universal
-          #   os: macos-14
-          #   platform: macos-universal
-          #   preset: vst3-macos-universal
+          - name: macOS universal
+            os: macos-14
+            platform: macos-universal
+            preset: vst3-macos-universal
           - name: Windows x86_64
             os: windows-2022
             platform: windows-x86_64
@@ -174,7 +174,9 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
           security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
 
-          codesign --force --options runtime --timestamp --sign "$IDENTITY" "stage/$APP_PKG/sdl2-synth"
+          if [ -e "stage/$APP_PKG/sdl2-synth" ]; then
+            codesign --force --options runtime --timestamp --sign "$IDENTITY" "stage/$APP_PKG/sdl2-synth"
+          fi
           codesign --force --deep --options runtime --timestamp --sign "$IDENTITY" "stage/$VST3_PKG/sdl2-synth.vst3"
           codesign --verify --deep --strict --verbose=2 "stage/$VST3_PKG/sdl2-synth.vst3"
 
@@ -188,7 +190,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          codesign --force --sign - "stage/$APP_PKG/sdl2-synth"
+          if [ -e "stage/$APP_PKG/sdl2-synth" ]; then
+            codesign --force --sign - "stage/$APP_PKG/sdl2-synth"
+          fi
           codesign --force --deep --sign - "stage/$VST3_PKG/sdl2-synth.vst3"
           codesign --verify --deep --strict "stage/$VST3_PKG/sdl2-synth.vst3"
 

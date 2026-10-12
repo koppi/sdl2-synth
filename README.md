@@ -1,4 +1,4 @@
-A modular synthesizer written in C, available as a standalone app (SDL2 for graphics and audio, MIDI input via libremidi) and as a **VST3 instrument plug-in** (Linux and Windows; the macOS build is being brought up).
+A modular synthesizer written in C, available as a standalone app (SDL2 for graphics and audio, MIDI input via libremidi) and as a **VST3 instrument plug-in** (Linux, Windows and macOS).
 
 ![Tech stack of sdl2-synth](tech-stack.png)
 
@@ -88,8 +88,7 @@ MIDI input is mapped to numerous parameters (see `src/midi.c` for mapping). All 
 
 Download a ready-made plug-in for your platform from the
 [releases page](https://github.com/koppi/sdl2-synth/releases/latest) and follow the `INSTALL.txt` inside.
-It shows up as an instrument called **SDL2 Synth**. Releases currently contain Linux and Windows builds;
-the macOS job in `.github/workflows/build.yml` is disabled until the macOS build is confirmed to work.
+It shows up as an instrument called **SDL2 Synth**.
 
 - **Parameters**: every knob in the editor (about 115) is an automatable host parameter, grouped by section.
 - **MIDI**: notes (sample accurate), pitch bend (+/-2 semitones) and these controllers, which the host
