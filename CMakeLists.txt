@@ -7,6 +7,11 @@ cmake_minimum_required(VERSION 3.15)
 set(SYNTH_VERSION "0.1.0" CACHE STRING "Version (major.minor.patch) of the synth")
 project(synth LANGUAGES C CXX VERSION ${SYNTH_VERSION})
 
+# Dear ImGui and the UI code need at least C++11. Compilers differ in their
+# default (AppleClang still defaults to C++98), so state it explicitly.
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 option(SYNTH_BUILD_STANDALONE "Build the standalone SDL2 application" ON)
 option(SYNTH_BUILD_VST3 "Build the VST3 plug-in (downloads the Steinberg VST 3 SDK)" OFF)
 

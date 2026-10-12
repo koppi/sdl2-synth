@@ -96,9 +96,11 @@ using namespace Steinberg;
   CGColorSpaceRef colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceSRGB);
   CGDataProviderRef provider =
       CGDataProviderCreateWithData(nullptr, _pixels, (size_t)_pixelWidth * (size_t)_pixelHeight * 4, nullptr);
+  // 0xAARRGGBB words on a little-endian machine, alpha ignored.
+  const CGBitmapInfo bitmapInfo =
+      (CGBitmapInfo)((uint32_t)kCGBitmapByteOrder32Little | (uint32_t)kCGImageAlphaNoneSkipFirst);
   CGImageRef image = CGImageCreate((size_t)_pixelWidth, (size_t)_pixelHeight, 8, 32, (size_t)_pixelWidth * 4,
-                                   colorSpace, kCGBitmapByteOrder32Little | kCGImageAlphaNoneSkipFirst, provider,
-                                   nullptr, false, kCGRenderingIntentDefault);
+                                   colorSpace, bitmapInfo, provider, nullptr, false, kCGRenderingIntentDefault);
   if (image) {
     // The view is flipped (origin top-left); CoreGraphics images are drawn
     // bottom-up, so flip once more to get an upright picture.

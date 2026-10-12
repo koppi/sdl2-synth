@@ -634,6 +634,8 @@ int main(int argc, char** argv) {
     std::printf("usage: %s <plugin.vst3> [--editor out.ppm] [--drag x,y,dy]\n", argv[0]);
     return 2;
   }
+  // Unbuffered output so a crash still shows how far the test got in CI logs.
+  std::setvbuf(stdout, nullptr, _IONBF, 0);
   const std::string path = argv[1];
   const char* ppm = nullptr;
   bool editor = false;
@@ -668,6 +670,15 @@ int main(int argc, char** argv) {
 
   plugin.processor->setProcessing(false);
   plugin.component->setActive(false);
+
+  // Tear down in the order a host must: drop every reference to plug-in
+  // objects first, then let the provider terminate them, and only then unload
+  // the module. (Releasing an interface after its DLL is gone crashes on
+  // Windows, where FreeLibrary really unmaps the code.)
+  plugin.data.unprepare();
+  plugin.processor = nullptr;
+  plugin.controller = nullptr;
+  plugin.component = nullptr;
   plugin.provider.reset();
   plugin.module.reset();
 
